@@ -596,12 +596,15 @@ def run(
                 if sw.n_new > 0:
                     prediction = sw.unfold_buffer()[-sw.n_new :]
                     sw.n_new = 0
-            prediction_key = code_to_key[prediction]
+                logger.debug(f"Decoding: prediction={prediction[-1][0]=}")
+            prediction_key = code_to_key[
+                int(prediction[-1][0])
+            ]  # take the latest prediction
             speller.log(
                 json.dumps(
                     {
                         "i_trial": i_trial,
-                        "prediction": prediction,
+                        "prediction": int(prediction[0][-1]),
                         "prediction_key": prediction_key,
                     }
                 )
