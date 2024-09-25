@@ -1,0 +1,8 @@
+dareplane_utils>=0.0.8
+fire>=0.6.0
+numpy>=1.26.4
+Pillow>=10.4.0
+psychopy>=2024.2.1
+pylsl>=1.16.2
+pyntbci>=1.4.1
+toml>=0.10.2
