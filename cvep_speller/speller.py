@@ -1,17 +1,18 @@
 import json
-from pathlib import Path
 import random
 import sys
+from pathlib import Path
 
-from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
 import numpy as np
 import psychopy
-from psychopy import visual, event, monitors, misc
-from pylsl import StreamInfo, StreamOutlet
 import toml
+from dareplane_utils.logging.logger import get_logger
+from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
+from fire import Fire
+from psychopy import event, misc, monitors, visual
+from pylsl import StreamInfo, StreamOutlet
 
 from cvep_speller.utils.logging import logger
-
 
 # Windows does not allow / , : * ? " < > | ~ in file names (for the images)
 KEY_MAPPING = {
@@ -51,6 +52,8 @@ class Speller(object):
         The name of the LSL stream to which markers of the keyboard are logged.
     quit_controls: list[str] (default: None)
         A list of keys that can be pressed to initiate quiting of the speller.
+    full_screen: bool (default: True)
+        Whether to present the speller in full screen mode.
 
     Attributes
     ----------
@@ -64,46 +67,61 @@ class Speller(object):
     text_fields: dict = dict()
 
     def __init__(
-            self,
-            screen_resolution: tuple[int, int],
-            width_cm: float,
-            distance_cm: float,
-            refresh_rate: int,
-            screen_id: int = 0,
-            background_color: tuple[float, float, float] = (0., 0., 0.),
-            lsl_stream_name: str = "marker-stream",
-            quit_controls: list[str] = None,
+        self,
+        screen_resolution: tuple[int, int],
+        width_cm: float,
+        distance_cm: float,
+        refresh_rate: int,
+        screen_id: int = 0,
+        background_color: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        lsl_stream_name: str = "marker-stream",
+        quit_controls: list[str] = None,
+        full_screen: bool = True,
     ) -> None:
         self.screen_resolution = screen_resolution
+        self.full_screen = full_screen
         self.width_cm = width_cm
         self.distance_cm = distance_cm
         self.refresh_rate = refresh_rate
         self.quit_controls = quit_controls
 
         # Setup monitor
-        self.monitor = monitors.Monitor(name="testMonitor", width=width_cm, distance=distance_cm)
+        self.monitor = monitors.Monitor(
+            name="testMonitor", width=width_cm, distance=distance_cm
+        )
         self.monitor.setSizePix(screen_resolution)
 
         # Setup window
         self.window = visual.Window(
-            monitor=self.monitor, screen=screen_id, units="pix", size=screen_resolution, color=background_color,
-            fullscr=True, waitBlanking=False, allowGUI=False, infoMsg=""
+            monitor=self.monitor,
+            screen=screen_id,
+            units="pix",
+            size=screen_resolution,
+            color=background_color,
+            fullscr=full_screen,
+            waitBlanking=False,
+            allowGUI=False,
+            infoMsg="",
         )
         self.window.setMouseVisible(False)
 
         # Setup LSL stream
         info = StreamInfo(
-            name=lsl_stream_name, type="Markers", channel_count=1, nominal_srate=0, channel_format="string",
-            source_id=lsl_stream_name
+            name=lsl_stream_name,
+            type="Markers",
+            channel_count=1,
+            nominal_srate=0,
+            channel_format="string",
+            source_id=lsl_stream_name,
         )
         self.outlet = StreamOutlet(info)
 
     def add_key(
-            self,
-            name: str,
-            images: list,
-            size: tuple[int, int],
-            pos: tuple[int, int],
+        self,
+        name: str,
+        images: list,
+        size: tuple[int, int],
+        pos: tuple[int, int],
     ) -> None:
         """
         Add a key to the speller.
@@ -123,22 +141,30 @@ class Speller(object):
         assert name not in self.keys, "Adding a key with a name that already exists!"
         self.keys[name] = []
         for image in images:
-            self.keys[name].append(visual.ImageStim(
-                win=self.window, name=name, image=image, units="pix", pos=pos, size=size, autoLog=False)
+            self.keys[name].append(
+                visual.ImageStim(
+                    win=self.window,
+                    name=name,
+                    image=image,
+                    units="pix",
+                    pos=pos,
+                    size=size,
+                    autoLog=False,
+                )
             )
 
         # Set autoDraw to True for first default key to keep app visible
         self.keys[name][0].setAutoDraw(True)
 
     def add_text_field(
-            self,
-            name: str,
-            text: str,
-            size: tuple[int, int],
-            pos: tuple[int, int],
-            background_color: tuple[float, float, float] = (0., 0., 0.),
-            text_color: tuple[float, float, float] = (-1., -1., -1.),
-            alignment: str = "left",
+        self,
+        name: str,
+        text: str,
+        size: tuple[int, int],
+        pos: tuple[int, int],
+        background_color: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        text_color: tuple[float, float, float] = (-1.0, -1.0, -1.0),
+        alignment: str = "left",
     ) -> None:
         """
         Add a text field to the speller.
@@ -160,13 +186,26 @@ class Speller(object):
         alignment: str (default: "left")
             The alignment of the text in the text field.
         """
-        assert name not in self.text_fields, "Adding a text field with a name that already exists!"
+        assert (
+            name not in self.text_fields
+        ), "Adding a text field with a name that already exists!"
         self.text_fields[name] = visual.TextBox2(
-            win=self.window, name=name, text=text, units="pix", pos=pos, size=size, letterHeight=0.8*size[1],
-            fillColor=background_color, color=text_color, alignment=alignment, autoDraw=True, autoLog=False)
+            win=self.window,
+            name=name,
+            text=text,
+            units="pix",
+            pos=pos,
+            size=size,
+            letterHeight=0.8 * size[1],
+            fillColor=background_color,
+            color=text_color,
+            alignment=alignment,
+            autoDraw=True,
+            autoLog=False,
+        )
 
     def get_pixels_per_degree(
-            self,
+        self,
     ) -> float:
         """
         Get the pixels per degree of the screen.
@@ -179,8 +218,8 @@ class Speller(object):
         return misc.deg2pix(degrees=1.0, monitor=self.monitor)
 
     def get_text_field(
-            self,
-            name: str,
+        self,
+        name: str,
     ) -> str:
         """
         Get the text of the text field.
@@ -195,13 +234,15 @@ class Speller(object):
         text: str
             The text of the text field.
         """
-        assert name in self.text_fields, "Getting text of a text field with a name that does not exists!"
+        assert (
+            name in self.text_fields
+        ), "Getting text of a text field with a name that does not exists!"
         return self.text_fields[name].text
 
     def set_text_field(
-            self,
-            name,
-            text,
+        self,
+        name,
+        text,
     ) -> None:
         """
         Set the text of a text field.
@@ -213,14 +254,16 @@ class Speller(object):
         text: str
             The text of the text field.
         """
-        assert name in self.text_fields, "Setting text of a text field with a name that does not exists!"
+        assert (
+            name in self.text_fields
+        ), "Setting text of a text field with a name that does not exists!"
         self.text_fields[name].setText(text)
         self.window.flip()
 
     def log(
-            self,
-            marker: str,
-            on_flip: bool = False,
+        self,
+        marker: str,
+        on_flip: bool = False,
     ) -> None:
         """
         Log a marker to the marker stream.
@@ -238,11 +281,11 @@ class Speller(object):
             self.outlet.push_sample([marker])
 
     def run(
-            self,
-            sequences: dict,
-            duration: float = None,
-            start_marker: str = None,
-            stop_marker: str = None
+        self,
+        sequences: dict,
+        duration: float = None,
+        start_marker: str = None,
+        stop_marker: str = None,
     ) -> None:
         """
         Run a stimulation phase of the speller, which makes the keys flash according to specific sequences.
@@ -296,7 +339,7 @@ class Speller(object):
         self.window.flip()
 
     def quit(
-            self,
+        self,
     ) -> None:
         """
         Quit the speller, close the window.
@@ -309,8 +352,8 @@ class Speller(object):
 
 
 def run(
-        phase: str = "training",
-        config_path: Path = Path("../configs/speller.toml"),
+    phase: str = "training",
+    config_path: Path = Path("./configs/speller.toml"),  # relative to the project root
 ) -> int:
     """
     Run the speller in a particular phase (training or online).
@@ -329,6 +372,7 @@ def run(
     flag: int
         Whether the process ran without errors or with.
     """
+
     cfg = toml.load(config_path)
 
     # Setup speller
@@ -338,56 +382,101 @@ def run(
         distance_cm=cfg["speller"]["screen"]["distance_cm"],
         refresh_rate=cfg["speller"]["screen"]["refresh_rate"],
         screen_id=cfg["speller"]["screen"]["id"],
+        full_screen=cfg["speller"]["screen"]["full_screen"],
         background_color=cfg["speller"]["screen"]["background_color"],
         lsl_stream_name=cfg["run"]["lsl_stream_name"],
-        quit_controls=cfg["speller"]["controls"]["quit"]
+        quit_controls=cfg["speller"]["controls"]["quit"],
     )
     ppd = speller.get_pixels_per_degree()
-    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    speller.log(marker=json.dumps({"python_version": python_version, "psychopy_version": psychopy.__version__}))
+    python_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+    speller.log(
+        marker=json.dumps(
+            {"python_version": python_version, "psychopy_version": psychopy.__version__}
+        )
+    )
 
     # Add stimulus timing tracker at left top of the screen
-    x_pos = int(-cfg["speller"]["screen"]["resolution"][0] / 2 + cfg["speller"]["stt"]["width_dva"] / 2 * ppd)
-    y_pos = int(cfg["speller"]["screen"]["resolution"][1] / 2 - cfg["speller"]["stt"]["height_dva"] / 2 * ppd)
+    x_pos = int(
+        -cfg["speller"]["screen"]["resolution"][0] / 2
+        + cfg["speller"]["stt"]["width_dva"] / 2 * ppd
+    )
+    y_pos = int(
+        cfg["speller"]["screen"]["resolution"][1] / 2
+        - cfg["speller"]["stt"]["height_dva"] / 2 * ppd
+    )
     speller.add_key(
         name="stt",
-        images=[Path(cfg["speller"]["images_dir"]) / f"{color}.png" for color in cfg["speller"]["stt"]["colors"]],
-        size=(int(cfg["speller"]["stt"]["width_dva"] * ppd), int(cfg["speller"]["stt"]["height_dva"] * ppd)),
-        pos=(x_pos, y_pos)
+        images=[
+            Path(cfg["speller"]["images_dir"]) / f"{color}.png"
+            for color in cfg["speller"]["stt"]["colors"]
+        ],
+        size=(
+            int(cfg["speller"]["stt"]["width_dva"] * ppd),
+            int(cfg["speller"]["stt"]["height_dva"] * ppd),
+        ),
+        pos=(x_pos, y_pos),
     )
 
     # Add text field at the top of the screen containing spelled text
     x_pos = int(cfg["speller"]["stt"]["width_dva"] * ppd / 2)
-    y_pos = int(cfg["speller"]["screen"]["resolution"][1] / 2 - cfg["speller"]["text_fields"]["height_dva"] * ppd / 2)
+    y_pos = int(
+        cfg["speller"]["screen"]["resolution"][1] / 2
+        - cfg["speller"]["text_fields"]["height_dva"] * ppd / 2
+    )
     speller.add_text_field(
         name="text",
         text="",
-        size=(int(cfg["speller"]["screen"]["resolution"][0] - cfg["speller"]["stt"]["width_dva"] * ppd),
-              int(cfg["speller"]["text_fields"]["height_dva"] * ppd)),
+        size=(
+            int(
+                cfg["speller"]["screen"]["resolution"][0]
+                - cfg["speller"]["stt"]["width_dva"] * ppd
+            ),
+            int(cfg["speller"]["text_fields"]["height_dva"] * ppd),
+        ),
         pos=(x_pos, y_pos),
-        background_color=cfg["speller"]["text_fields"]["background_color"]
+        background_color=cfg["speller"]["text_fields"]["background_color"],
     )
 
     # Add text field at the bottom of the screen containing system messages
     x_pos = 0
-    y_pos = int(-cfg["speller"]["screen"]["resolution"][1] / 2 + cfg["speller"]["text_fields"]["height_dva"] * ppd / 2)
+    y_pos = int(
+        -cfg["speller"]["screen"]["resolution"][1] / 2
+        + cfg["speller"]["text_fields"]["height_dva"] * ppd / 2
+    )
     speller.add_text_field(
         name="messages",
         text="",
-        size=(cfg["speller"]["screen"]["resolution"][0], int(cfg["speller"]["text_fields"]["height_dva"] * ppd)),
+        size=(
+            cfg["speller"]["screen"]["resolution"][0],
+            int(cfg["speller"]["text_fields"]["height_dva"] * ppd),
+        ),
         pos=(x_pos, y_pos),
         background_color=cfg["speller"]["text_fields"]["background_color"],
-        alignment="center"
+        alignment="center",
     )
 
     # Add keys
     for y in range(len(cfg["speller"]["keys"]["keys"])):
         for x in range(len(cfg["speller"]["keys"]["keys"][y])):
-            x_pos = int((x - len(cfg["speller"]["keys"]["keys"][y]) / 2 + 0.5) *
-                        (cfg["speller"]["keys"]["width_dva"] + cfg["speller"]["keys"]["space_dva"]) * ppd)
-            y_pos = int(-(y - len(cfg["speller"]["keys"]["keys"]) / 2) *
-                        (cfg["speller"]["keys"]["height_dva"] + cfg["speller"]["keys"]["space_dva"]) * ppd -
-                        cfg["speller"]["text_fields"]["height_dva"] * ppd)
+            x_pos = int(
+                (x - len(cfg["speller"]["keys"]["keys"][y]) / 2 + 0.5)
+                * (
+                    cfg["speller"]["keys"]["width_dva"]
+                    + cfg["speller"]["keys"]["space_dva"]
+                )
+                * ppd
+            )
+            y_pos = int(
+                -(y - len(cfg["speller"]["keys"]["keys"]) / 2)
+                * (
+                    cfg["speller"]["keys"]["height_dva"]
+                    + cfg["speller"]["keys"]["space_dva"]
+                )
+                * ppd
+                - cfg["speller"]["text_fields"]["height_dva"] * ppd
+            )
             if y == 0 or y == 1:
                 x_pos -= int(0.5 * cfg["speller"]["keys"]["width_dva"] * ppd)
             if y == 3:
@@ -395,20 +484,30 @@ def run(
             if y == 4:
                 x_pos -= int(0.25 * cfg["speller"]["keys"]["width_dva"] * ppd)
             if cfg["speller"]["keys"]["keys"][y][x] == "space":
-                images = [Path(cfg["speller"]["images_dir"]) / f'{color}.png'
-                          for color in cfg["speller"]["keys"]["colors"]]
+                images = [
+                    Path(cfg["speller"]["images_dir"]) / f"{color}.png"
+                    for color in cfg["speller"]["keys"]["colors"]
+                ]
             else:
-                images = [Path(cfg["speller"]["images_dir"]) / f'{cfg["speller"]["keys"]["keys"][y][x]}_{color}.png'
-                          for color in cfg["speller"]["keys"]["colors"]]
+                images = [
+                    Path(cfg["speller"]["images_dir"])
+                    / f'{cfg["speller"]["keys"]["keys"][y][x]}_{color}.png'
+                    for color in cfg["speller"]["keys"]["colors"]
+                ]
             speller.add_key(
                 name=cfg["speller"]["keys"]["keys"][y][x],
                 images=images,
-                size=(int(cfg["speller"]["keys"]["width_dva"] * ppd), int(cfg["speller"]["keys"]["height_dva"] * ppd)),
-                pos=(x_pos, y_pos)
+                size=(
+                    int(cfg["speller"]["keys"]["width_dva"] * ppd),
+                    int(cfg["speller"]["keys"]["height_dva"] * ppd),
+                ),
+                pos=(x_pos, y_pos),
             )
 
     # Setup code sequences
-    tmp = np.load(Path(cfg["speller"]["codes_dir"]) / Path(cfg["speller"]["codes_file"]))["codes"]
+    tmp = np.load(
+        Path(cfg["speller"]["codes_dir"]) / Path(cfg["speller"]["codes_file"])
+    )["codes"]
     key_to_sequence = dict()
     code_to_key = dict()
     i_code = 0
@@ -418,8 +517,10 @@ def run(
             code_to_key[i_code] = key
             i_code += 1
     n_classes = i_code
-    key_to_sequence["stt"] = ([1] + [0] * int((1 + cfg["speller"]["timing"]["trial_s"]) *
-                                              cfg["speller"]["screen"]["refresh_rate"]))
+    key_to_sequence["stt"] = [1] + [0] * int(
+        (1 + cfg["speller"]["timing"]["trial_s"])
+        * cfg["speller"]["screen"]["refresh_rate"]
+    )
     speller.log(marker=json.dumps({"codes": key_to_sequence, "labels": code_to_key}))
 
     # Setup highlights
@@ -431,7 +532,9 @@ def run(
 
     # connect to decoder stream
     if phase == "online":
-        logger.info(f'Connecting to decoder stream "{cfg["run"]["online"]["decoder_lsl_stream_name"]}"')
+        logger.info(
+            f'Connecting to decoder stream "{cfg["run"]["online"]["decoder_lsl_stream_name"]}"'
+        )
         sw = StreamWatcher(name=cfg["run"]["online"]["decoder_lsl_stream_name"])
         sw.connect_to_stream()
 
@@ -457,7 +560,11 @@ def run(
             # Set a random target
             target = random.randint(0, n_classes - 1)
             target_key = code_to_key[target]
-            speller.log(json.dumps({"i_trial": i_trial, "target": target, "target_key": target_key}))
+            speller.log(
+                json.dumps(
+                    {"i_trial": i_trial, "target": target, "target_key": target_key}
+                )
+            )
             logger.debug(f"Cue: target={target} target_key={target_key}")
 
             # Cue
@@ -467,7 +574,7 @@ def run(
                 sequences=highlights,
                 duration=cfg["speller"]["timing"]["cue_s"],
                 start_marker=cfg["speller"]["markers"]["cue_start"],
-                stop_marker=cfg["speller"]["markers"]["cue_stop"]
+                stop_marker=cfg["speller"]["markers"]["cue_stop"],
             )
             highlights[target_key] = [0]
 
@@ -477,7 +584,7 @@ def run(
             sequences=key_to_sequence,
             duration=cfg["speller"]["timing"]["trial_s"],
             start_marker=cfg["speller"]["markers"]["trial_start"],
-            stop_marker=cfg["speller"]["markers"]["trial_start"]
+            stop_marker=cfg["speller"]["markers"]["trial_start"],
         )
 
         if phase == "online":
@@ -487,11 +594,21 @@ def run(
             while len(prediction) == 0:
                 sw.update()
                 if sw.n_new > 0:
-                    prediction = sw.unfold_buffer()[-sw.n_new:]
+                    prediction = sw.unfold_buffer()[-sw.n_new :]
                     sw.n_new = 0
             prediction_key = code_to_key[prediction]
-            speller.log(json.dumps({"i_trial": i_trial, "prediction": prediction, "prediction_key": prediction_key}))
-            logger.debug(f"Decoding: prediction={prediction} prediction_key={prediction_key}")
+            speller.log(
+                json.dumps(
+                    {
+                        "i_trial": i_trial,
+                        "prediction": prediction,
+                        "prediction_key": prediction_key,
+                    }
+                )
+            )
+            logger.debug(
+                f"Decoding: prediction={prediction} prediction_key={prediction_key}"
+            )
 
             # Spelling
             text = speller.get_text_field("text")
@@ -514,7 +631,7 @@ def run(
                 sequences=highlights,
                 duration=cfg["speller"]["timing"]["feedback_s"],
                 start_marker=cfg["speller"]["markers"]["feedback_start"],
-                stop_marker=cfg["speller"]["markers"]["feedback_stop"]
+                stop_marker=cfg["speller"]["markers"]["feedback_stop"],
             )
             highlights[prediction_key] = [0]
 
@@ -524,7 +641,7 @@ def run(
             sequences=highlights,
             duration=cfg["speller"]["timing"]["iti_s"],
             start_marker=cfg["speller"]["markers"]["iti_start"],
-            stop_marker=cfg["speller"]["markers"]["iti_stop"]
+            stop_marker=cfg["speller"]["markers"]["iti_stop"],
         )
 
     # Wait to stop
@@ -544,5 +661,34 @@ def run(
     return 0
 
 
+# make this the cli starting point
+def cli_run(
+    phase: str = "training",
+    config_path: Path = Path("./configs/speller.toml"),  # relative to the project root
+    log_level: int = 30,
+):
+    """
+    Run the speller in a particular phase (training or online).
+
+    Parameters
+    ----------
+    phase: str (default: "training")
+        The phase of the speller being either training or online. During training, the user is cued to attend to a
+        random target key every trail. During online, the user attends to their target, while their EEG is decoded and
+        the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.).
+    config_path: Path (default: "./configs/speller.toml")
+        The path to the configuration file containing session specific hyperparameters for the speller setup.
+    log_level : int (default: 30)
+        The logging level to use.
+
+    """
+
+    # activate the console logging if started via CLI
+    logger = get_logger("speller", add_console_handler=True)
+    logger.setLevel(log_level)
+
+    run(phase=phase, config_path=config_path)
+
+
 if __name__ == "__main__":
-    run()
+    Fire(cli_run)

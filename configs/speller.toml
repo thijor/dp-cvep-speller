@@ -1,16 +1,17 @@
 [speller]
-images_dir = "images/"
-codes_dir = "codes/"
+images_dir = "./cvep_speller/images/"
+codes_dir = "./cvep_speller/codes/"
 codes_file = "mgold_61_6521.npz"
 presentation_rate_hz = 60
 
 [speller.screen]
-id = 0
+id = 1
 resolution = [1920, 1080]
 width_cm = 53.0
 distance_cm = 60.0
 background_color = [0, 0, 0]
 refresh_rate = 60
+full_screen = true # false for debugging
 
 [speller.timing]
 cue_s = 0.7
