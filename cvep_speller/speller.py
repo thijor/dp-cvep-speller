@@ -1,7 +1,10 @@
 import json
+from pathlib import Path
 import random
+import sys
 
 import numpy as np
+import psychopy
 from psychopy import visual, event, monitors, misc
 from pylsl import StreamInfo, StreamOutlet
 
@@ -48,7 +51,10 @@ KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
 KEYS_QUIT = ["q", "escape"]
 KEYS_CONTINUE = ["c"]
 
-CODE_FILE = "mgold_61_6521.npz"
+IMAGES_DIR = Path("images")
+
+CODES_DIR = Path("codes")
+CODES_FILE = "mgold_61_6521.npz"
 
 TIME_CUE = 0.8
 TIME_TRIAL = 4.2
@@ -57,6 +63,17 @@ TIME_ITI = 0.5
 
 N_TRAINING_TRIALS = 10
 N_ONLINE_TRIALS = 100
+
+DECODING_STREAM = "cvep-decoding"
+
+MARKER_CUE_START = "start_cue"
+MARKER_CUE_STOP = "stop_cue"
+MARKER_TRIAL_START = "start_trial"
+MARKER_TRIAL_STOP = "stop_trial"
+MARKER_FEEDBACK_START = "start_feedback"
+MARKER_FEEDBACK_STOP = "stop_feedback"
+MARKER_ITI_START = "start_iti"
+MARKER_ITI_STOP = "stop_iti"
 
 
 class Keyboard(object):
@@ -331,7 +348,9 @@ class Keyboard(object):
         self.window.close()
 
 
-def run(phase):
+def run(
+        phase: str = "training"
+) -> int:
     """
     Run the keyboard speller in a particular phase (training or online).
 
@@ -341,6 +360,11 @@ def run(phase):
         The phase of the speller being either training or online. During training, the user is cued to attend to a
         random target key every trail. During online, the user attends to their target, while their EEG is decoded and
         the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.).
+
+    Returns
+    -------
+    flag: int
+        Whether the process ran without errors or with.
     """
     # Setup keyboard
     keyboard = Keyboard(
@@ -348,13 +372,15 @@ def run(phase):
         background_color=SCREEN_COLOR
     )
     ppd = keyboard.get_pixels_per_degree()
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    keyboard.log(marker=json.dumps({"python_version": python_version, "psychopy_version": psychopy.__version__}))
 
     # Add stimulus timing tracker at left top of the screen
     x_pos = int(-SCREEN_SIZE[0] / 2 + STT_WIDTH / 2 * ppd)
     y_pos = int(SCREEN_SIZE[1] / 2 - STT_HEIGHT / 2 * ppd)
     keyboard.add_key(
-        name="stt", images=["images/black.png", "images/white.png"], size=(int(STT_WIDTH * ppd), int(STT_HEIGHT * ppd)),
-        pos=(x_pos, y_pos)
+        name="stt", images=[IMAGES_DIR / "black.png", IMAGES_DIR / "white.png"],
+        size=(int(STT_WIDTH * ppd), int(STT_HEIGHT * ppd)), pos=(x_pos, y_pos)
     )
 
     # Add text field at the top of the screen containing spelled text
@@ -385,16 +411,16 @@ def run(phase):
             if y == 4:
                 x_pos -= int(0.25 * KEY_WIDTH * ppd)
             if KEYS[y][x] == "space":
-                images = [f"images/{color}.png" for color in KEY_COLORS]
+                images = [IMAGES_DIR / f"{color}.png" for color in KEY_COLORS]
             else:
-                images = [f"images/{KEYS[y][x]}_{color}.png" for color in KEY_COLORS]
+                images = [IMAGES_DIR / f"{KEYS[y][x]}_{color}.png" for color in KEY_COLORS]
             keyboard.add_key(
                 name=KEYS[y][x], images=images,
                 size=(int(KEY_WIDTH * ppd), int(KEY_HEIGHT * ppd)), pos=(x_pos, y_pos)
             )
 
     # Setup code sequences
-    tmp = np.load(f"codes/{CODE_FILE}")["codes"]
+    tmp = np.load(CODES_DIR / CODES_FILE)["codes"]
     key_to_sequence = dict()
     code_to_key = dict()
     i_code = 0
@@ -405,6 +431,7 @@ def run(phase):
             i_code += 1
     n_classes = i_code
     key_to_sequence["stt"] = [1] + [0] * int((1 + TIME_TRIAL) * SCREEN_FR)
+    keyboard.log(marker=json.dumps({"codes": key_to_sequence, "labels": code_to_key}))
 
     # Setup highlights
     highlights = dict()
@@ -412,9 +439,6 @@ def run(phase):
         for key in row:
             highlights[key] = [0]
     highlights["stt"] = [0]
-
-    # Log configuration
-    keyboard.log(marker=json.dumps({"codes": key_to_sequence}))
 
     if phase == "training":
         n_trials = N_TRAINING_TRIALS
@@ -425,7 +449,7 @@ def run(phase):
 
     # connect to decoder stream
     if phase == "online":
-        sw = StreamWatcher(name="decoder")
+        sw = StreamWatcher(name=DECODING_STREAM)
         sw.connect_to_stream()
 
     # Wait to start run
@@ -451,13 +475,14 @@ def run(phase):
             # Cue
             highlights[target_key] = [-2]
             keyboard.run(
-                sequences=highlights, duration=TIME_CUE, start_marker="start_cue", stop_marker="stop_cue"
+                sequences=highlights, duration=TIME_CUE, start_marker=MARKER_CUE_START, stop_marker=MARKER_CUE_STOP
             )
             highlights[target_key] = [0]
 
         # Trial
         keyboard.run(
-            sequences=key_to_sequence, duration=TIME_TRIAL, start_marker="start_trial", stop_marker="stop_trial"
+            sequences=key_to_sequence, duration=TIME_TRIAL, start_marker=MARKER_TRIAL_START,
+            stop_marker=MARKER_TRIAL_STOP
         )
 
         if phase == "online":
@@ -466,7 +491,7 @@ def run(phase):
             while len(prediction) == 0:
                 sw.update()
                 if sw.n_new > 0:
-                    prediction = sw.unfold_buffer()[-sw.n_new:] - 1
+                    prediction = sw.unfold_buffer()[-sw.n_new:]
                     sw.n_new = 0
             prediction_key = code_to_key[prediction]
             keyboard.log(json.dumps({"i_trial": i_trial, "prediction": prediction, "prediction_key": prediction_key}))
@@ -487,13 +512,14 @@ def run(phase):
             # Feedback
             highlights[prediction_key] = [-1]
             keyboard.run(
-                sequences=highlights, duration=TIME_FEEDBACK, start_marker="start_feedback", stop_marker="stop_feedback"
+                sequences=highlights, duration=TIME_FEEDBACK, start_marker=MARKER_FEEDBACK_START,
+                stop_marker=MARKER_FEEDBACK_STOP
             )
             highlights[prediction_key] = [0]
 
         # Inter-trial time
         keyboard.run(
-            sequences=highlights, duration=TIME_ITI, start_marker="start_inter_trial", stop_marker="stop_inter_trial"
+            sequences=highlights, duration=TIME_ITI, start_marker=MARKER_ITI_START, stop_marker=MARKER_ITI_STOP
         )
 
     # Wait to stop
@@ -512,4 +538,4 @@ def run(phase):
 
 
 if __name__ == "__main__":
-    run(phase="online")
+    run(phase="training")
