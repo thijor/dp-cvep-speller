@@ -1,0 +1,66 @@
+[speller]
+images_dir = "images/"
+codes_dir = "codes/"
+codes_file = "mgold_61_6521.npz"
+presentation_rate_hz = 60
+
+[speller.screen]
+id = 0
+resolution = [1920, 1080]
+width_cm = 53.0
+distance_cm = 60.0
+background_color = [0, 0, 0]
+refresh_rate = 60
+
+[speller.timing]
+cue_s = 0.7
+trial_s = 4.2
+feedback_s = 0.7
+iti_s = 0.3
+
+[speller.stt]
+width_dva = 2.2
+height_dva = 2.2
+colors = ["black", "white"]
+
+[speller.keys]
+width_dva = 3.0
+height_dva = 3.0
+space_dva = 0.5
+colors = ["black", "white", "green", "blue"]
+keys = [
+    ["!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+"],  # 12
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="],  # 12
+    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]"],  # 12
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "quote", "bar"],  # 12
+    ["tilde", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question", "slash"],  # 12
+    ["smaller", "space", "larger"]]  # 3
+
+[speller.text_fields]
+height_dva = 2.3
+background_color = [-0.05, -0.05, -0.05]
+
+[speller.controls]
+continue = ["c"]
+quit = ["q", "escape"]
+
+[speller.markers]
+cue_start = "start_cue"
+cue_stop = "stop_cue"
+trial_start = "start_trial"
+trial_stop = "stop_trial"
+feedback_start = "start_feedback"
+feedback_stop = "stop_feedback"
+iti_start = "start_iti"
+iti_stop = "stop_iti"
+
+[run]
+phase = "training"
+lsl_stream_name = "marker-stream"
+
+[run.training]
+n_trials = 10
+
+[run.online]
+n_trials = 999
+decoder_lsl_stream_name = "cvep-decoder-stream"
