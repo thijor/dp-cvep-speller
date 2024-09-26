@@ -16,7 +16,7 @@ logger.setLevel("DEBUG")
 CFG = toml.load("./configs/speller.toml")
 
 
-def provide_lsl_stream(stop_event: threading.Event, srate: float = 10):
+def provide_lsl_stream(stop_event: threading.Event, srate: float = 5):
     """Send a decoding signal every 1.5s looping over the alphabet"""
     # block print to stdout to suppress noise
     outlet = pylsl.StreamOutlet(
@@ -44,7 +44,7 @@ def provide_lsl_stream(stop_event: threading.Event, srate: float = 10):
 
             # logger.debug(f"Sending {req_samples=} samples")
             # a decoding signal
-            if time.time() - t_last_decode > 1.5:
+            if time.time() - t_last_decode > 1.0:
                 t_last_decode = time.time()
                 outlet.push_sample([f"speller_select {ichar}"])
                 # logger.debug(f"Sent decoding signal for {data[ichar]=}, {ichar=}")
@@ -98,38 +98,24 @@ def test_decoder_selection(spawn_lsl_data_stream):
     speller.key_map = code_to_key
 
     decoded_idx = []
-    speller.run(
-        sequences=key_to_seq,
-        duration=2,  # the mockup decoder stream should deliver a signal every 1.5s
-        start_marker="start",
-        stop_marker="stop",
-    )
-    if speller.last_selected_key_idx is not None:
-        decoded_idx.append(speller.last_selected_key_idx)
+    for i in range(3):
+        # sw.update()
+        # sw.n_new = 0
 
-    time.sleep(1)
+        speller.run(
+            sequences=key_to_seq,
+            duration=2,  # the mockup decoder stream should deliver a signal every 1.5s
+            start_marker="start",
+            stop_marker="stop",
+        )
+        if speller.last_selected_key_idx is not None:
+            decoded_idx.append(speller.last_selected_key_idx)
 
-    speller.run(
-        sequences=key_to_seq,
-        duration=2,  # the mockup decoder stream should deliver a signal every 1.5s
-        start_marker="start",
-        stop_marker="stop",
-    )
-    if speller.last_selected_key_idx is not None:
-        decoded_idx.append(speller.last_selected_key_idx)
-
-    time.sleep(1)
-
-    speller.run(
-        sequences=key_to_seq,
-        duration=2,  # the mockup decoder stream should deliver a signal every 1.5s
-        start_marker="start",
-        stop_marker="stop",
-    )
-    if speller.last_selected_key_idx is not None:
-        decoded_idx.append(speller.last_selected_key_idx)
+        # sw.update()
+        # logger.info(f"Markers of this period: {sw.unfold_buffer()[-sw.n_new:]}")
 
     assert len(decoded_idx) == 3
+    assert decoded_idx[0] != decoded_idx[1] != decoded_idx[2]
 
-    # assert that the indeces are at most three apart (one might have slipped if the decoder input was exactly inbetween runs)
-    assert decoded_idx[0] + 3 <= decoded_idx[-1]
+    # assert that the indeces are at most 6 appart (new maker every second from LSL = loop with 3 times 2s intervals)
+    assert decoded_idx[0] + 6 >= decoded_idx[-1]

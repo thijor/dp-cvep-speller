@@ -361,6 +361,8 @@ class Speller(object):
                 self.keys[name][code[i % len(code)]].draw()
             self.window.flip()
 
+        logger.debug(f"All {n_frames=} shown.")
+
         # Send stop marker
         if stop_marker is not None:
             self.log(stop_marker)
@@ -395,6 +397,8 @@ class Speller(object):
             prediction = self.decoder_sw.unfold_buffer()[
                 -self.decoder_sw.n_new :
             ].flatten()
+
+            logger.debug(f"Received: prediction={prediction}")
 
             selections = [
                 c
