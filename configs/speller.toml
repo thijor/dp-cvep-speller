@@ -2,7 +2,7 @@
 images_dir = "./cvep_speller/images/"
 codes_dir = "./cvep_speller/codes/"
 codes_file = "mgold_61_6521.npz"
-presentation_rate_hz = 60
+presentation_rate = 60
 
 [speller.screen]
 id = 1

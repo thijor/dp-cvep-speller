@@ -505,15 +505,17 @@ def run(
             )
 
     # Setup code sequences
-    tmp = np.load(
+    codes = np.load(
         Path(cfg["speller"]["codes_dir"]) / Path(cfg["speller"]["codes_file"])
     )["codes"]
+    codes = np.repeat(
+        codes, int(cfg["speller"]["screen"]["refresh_rate"] / cfg["speller"]["presentation_rate"]), axis=1)
     key_to_sequence = dict()
     code_to_key = dict()
     i_code = 0
     for row in cfg["speller"]["keys"]["keys"]:
         for key in row:
-            key_to_sequence[key] = tmp[i_code, :].tolist()
+            key_to_sequence[key] = codes[i_code, :].tolist()
             code_to_key[i_code] = key
             i_code += 1
     n_classes = i_code
