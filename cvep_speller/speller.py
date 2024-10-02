@@ -125,6 +125,7 @@ class Speller(object):
         self.key_map: dict[int, str] = {}
         self.hightlights: dict = {}
         self.current_trial_idx: int = 0
+        self.decoder_sw = None
 
     def add_key(
         self,
@@ -350,10 +351,11 @@ class Speller(object):
                     self.quit()
 
             # check selection marker
-            self.decoder_sw.update()  # check every frame
-            if self.has_decoding_event():
-                self.handle_decoding_event()
-                break
+            if self.decoder_sw is not None:
+                self.decoder_sw.update()  # check every frame
+                if self.has_decoding_event():
+                    self.handle_decoding_event()
+                    break
 
             # Present keys with color depending on code state
             for name, code in sequences.items():
@@ -661,7 +663,9 @@ def run_speller_paradigm(
     """
     cfg = toml.load(config_path)
     speller = setup_speller(cfg)
-    speller.connect_to_decoder_lsl_stream()
+
+    if phase != "training":
+        speller.connect_to_decoder_lsl_stream()
 
     key_to_sequence, code_to_key = create_key2seq_and_code2key(cfg)
     speller.key_map = code_to_key
