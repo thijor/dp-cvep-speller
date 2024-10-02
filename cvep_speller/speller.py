@@ -216,9 +216,9 @@ class Speller(object):
         )
 
     def connect_to_decoder_lsl_stream(self):
-        self.decoder_sw = StreamWatcher(
-            name=self.cfg["run"]["online"]["decoder_lsl_stream_name"]
-        )
+        name = self.cfg["run"]["online"]["decoder_lsl_stream_name"]
+        print(f"LSL connecting to: {name=}")
+        self.decoder_sw = StreamWatcher(name=name)
         self.decoder_sw.connect_to_stream()
 
     def get_pixels_per_degree(
