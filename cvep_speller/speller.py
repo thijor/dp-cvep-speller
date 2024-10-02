@@ -1,7 +1,6 @@
 import json
 import random
 import sys
-import threading
 from pathlib import Path
 
 import numpy as np
