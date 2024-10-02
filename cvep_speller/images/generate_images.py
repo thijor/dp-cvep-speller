@@ -8,7 +8,7 @@ KEYS = [
 	"!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+",  # 12
 	"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=",  # 12
 	"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]",  # 12
-	"A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "quote", "bar",  # 12
+	"A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar",  # 12
 	"tilde", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question", "slash",  # 12
 	"smaller", "space", "larger"]  # 3
 KEY_COLORS = ["black", "white", "green", "blue"]
