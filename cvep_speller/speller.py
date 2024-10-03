@@ -106,7 +106,7 @@ class Speller(object):
             fullscr=full_screen,
             waitBlanking=False,
             allowGUI=False,
-            infoMsg="",
+            # infoMsg="",
         )
         self.window.setMouseVisible(False)
 
@@ -349,6 +349,7 @@ class Speller(object):
             if i % 60 == 0:
                 if len(event.getKeys(keyList=self.quit_controls)) > 0:
                     self.quit()
+                    break
 
             # check selection marker
             if self.decoder_sw is not None:
@@ -360,6 +361,7 @@ class Speller(object):
             # Present keys with color depending on code state
             for name, code in sequences.items():
                 self.keys[name][code[i % len(code)]].draw()
+
             self.window.flip()
 
         logger.debug(f"All {n_frames=} shown.")
@@ -371,6 +373,7 @@ class Speller(object):
         # Set autoDraw to True to keep speller visible
         for key in self.keys.values():
             key[0].setAutoDraw(True)
+
         self.window.flip()
 
     def quit(
