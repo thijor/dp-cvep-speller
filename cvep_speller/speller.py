@@ -384,9 +384,11 @@ class Speller(object):
         """
         for key in self.keys.values():
             key[0].setAutoDraw(True)
-        self.window.flip()
-        self.window.setMouseVisible(True)
-        self.window.close()
+
+        if self.window is not None:
+            self.window.flip()
+            self.window.setMouseVisible(True)
+            self.window.close()
 
     def has_decoding_event(self) -> bool:
         """
