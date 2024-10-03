@@ -6,13 +6,12 @@ from pathlib import Path
 import numpy as np
 import psychopy
 import toml
+from cvep_speller.utils.logging import logger
 from dareplane_utils.logging.logger import get_logger
 from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
 from fire import Fire
 from psychopy import event, misc, monitors, visual
 from pylsl import StreamInfo, StreamOutlet
-
-from cvep_speller.utils.logging import logger
 
 # Windows does not allow / , : * ? " < > | ~ in file names (for the images)
 KEY_MAPPING = {
@@ -719,7 +718,7 @@ def run_speller_paradigm(
             sequences=key_to_sequence,
             duration=cfg["speller"]["timing"]["trial_s"],
             start_marker=cfg["speller"]["markers"]["trial_start"],
-            stop_marker=cfg["speller"]["markers"]["trial_start"],
+            stop_marker=cfg["speller"]["markers"]["trial_stop"],
         )
 
         # Inter-trial time
