@@ -6,12 +6,13 @@ from pathlib import Path
 import numpy as np
 import psychopy
 import toml
-from cvep_speller.utils.logging import logger
 from dareplane_utils.logging.logger import get_logger
 from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
 from fire import Fire
 from psychopy import event, misc, monitors, visual
 from pylsl import StreamInfo, StreamOutlet
+
+from cvep_speller.utils.logging import logger
 
 # Windows does not allow / , : * ? " < > | ~ in file names (for the images)
 KEY_MAPPING = {
@@ -215,7 +216,7 @@ class Speller(object):
         )
 
     def connect_to_decoder_lsl_stream(self):
-        name = self.cfg["run"]["online"]["decoder_lsl_stream_name"]
+        name = self.cfg["run"]["online"]["decoder"]["lsl_stream_name"]
         print(f"LSL connecting to: {name=}")
         self.decoder_sw = StreamWatcher(name=name)
         self.decoder_sw.connect_to_stream()

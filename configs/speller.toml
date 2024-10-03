@@ -64,4 +64,6 @@ n_trials = 10
 
 [run.online]
 n_trials = 999
-decoder_lsl_stream_name = "cvep-decoder-stream"
+
+[run.online.decoder]
+lsl_stream_name = "decoder-stream"
