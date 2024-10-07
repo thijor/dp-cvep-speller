@@ -45,7 +45,7 @@ class Speller(object):
     refresh_rate: int
         The screen refresh rate in Hz.
     cfg: dict
-        config object containing context and paradigm configuartion info as loaded
+        config object containing context and paradigm configuration info as loaded
         from `./configs/speller.toml`.
     screen_id: int (default: 0)
         The screen number where to present the keyboard when multiple screens are used.
@@ -123,7 +123,7 @@ class Speller(object):
 
         self.last_selected_key_idx: int | None = None
         self.key_map: dict[int, str] = {}
-        self.hightlights: dict = {}
+        self.highlights: dict = {}
         self.current_trial_idx: int = 0
         self.decoder_sw = None
 
@@ -215,7 +215,9 @@ class Speller(object):
             autoLog=False,
         )
 
-    def connect_to_decoder_lsl_stream(self):
+    def connect_to_decoder_lsl_stream(
+        self
+    ) -> None:
         name = self.cfg["run"]["online"]["decoder"]["lsl_stream_name"]
         print(f"LSL connecting to: {name=}")
         self.decoder_sw = StreamWatcher(name=name)
@@ -258,8 +260,8 @@ class Speller(object):
 
     def set_text_field(
         self,
-        name,
-        text,
+        name: str,
+        text: str,
     ) -> None:
         """
         Set the text of a text field.
@@ -303,7 +305,6 @@ class Speller(object):
         duration: float = None,
         start_marker: str = None,
         stop_marker: str = None,
-        phase: str = None,
     ) -> None:
         """
         Run a stimulation phase of the speller, which makes the keys flash according to specific sequences.
@@ -319,13 +320,6 @@ class Speller(object):
             The marker to log when stimulation starts. If None, no marker is logged.
         stop_marker: str (default: None)
             The marker to log when stimulation stops. If None, no marker is logged.
-        phase: str (default: "training")
-            The phase of the speller being either training or online. During training, the user is cued to attend to a
-            random target key every trail. During online, the user attends to their target, while their EEG is decoded and
-            the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.). In the online phase,
-            the speller will continuously query an LSL marker stream to look for a potential decoding result from
-            the decoder module. If the stream contains a marker `speller_select <key_idx>`, the speller will
-            stop the presenation and will show the selected symbol by looking up `self.key_map[int(<key_idx>)`.
         """
         self.current_trial_idx += 1
         # Set number of frames
@@ -390,7 +384,9 @@ class Speller(object):
             self.window.setMouseVisible(True)
             self.window.close()
 
-    def has_decoding_event(self) -> bool:
+    def has_decoding_event(
+        self
+    ) -> bool:
         """
         Check if the LSL stream contained a `speller_decode <key_idx>` marker.
         """
@@ -401,7 +397,7 @@ class Speller(object):
 
         if self.decoder_sw.n_new != 0:
             prediction = self.decoder_sw.unfold_buffer()[
-                -self.decoder_sw.n_new :
+                -self.decoder_sw.n_new:
             ].flatten()
 
             logger.debug(f"Received: prediction={prediction}")
@@ -421,7 +417,9 @@ class Speller(object):
 
         return False
 
-    def handle_decoding_event(self):
+    def handle_decoding_event(
+        self
+    ) -> None:
         # Decoding
         logger.info("Waiting for decoding")
 
@@ -467,7 +465,9 @@ class Speller(object):
         )
         self.highlights[prediction_key] = [0]
 
-    def init_highlights_with_zero(self):
+    def init_highlights_with_zero(
+        self
+    ) -> None:
         # Setup highlights
         self.highlights = dict()
         for row in self.cfg["speller"]["keys"]["keys"]:
@@ -476,14 +476,16 @@ class Speller(object):
         self.highlights["stt"] = [0]
 
 
-def setup_speller(cfg: dict) -> Speller:
+def setup_speller(
+    cfg: dict
+) -> Speller:
 
     # Setup speller
     speller = Speller(
         screen_resolution=cfg["speller"]["screen"]["resolution"],
         width_cm=cfg["speller"]["screen"]["width_cm"],
         distance_cm=cfg["speller"]["screen"]["distance_cm"],
-        refresh_rate=cfg["speller"]["screen"]["refresh_rate"],
+        refresh_rate=cfg["speller"]["screen"]["refresh_rate_hz"],
         screen_id=cfg["speller"]["screen"]["id"],
         full_screen=cfg["speller"]["screen"]["full_screen"],
         background_color=cfg["speller"]["screen"]["background_color"],
@@ -613,7 +615,10 @@ def setup_speller(cfg: dict) -> Speller:
     return speller
 
 
-def create_key2seq_and_code2key(cfg: dict) -> tuple[dict, dict]:
+def create_key2seq_and_code2key(
+    cfg: dict
+) -> tuple[dict, dict]:
+
     # Setup code sequences
     codes = np.load(
         Path(cfg["speller"]["codes_dir"]) / Path(cfg["speller"]["codes_file"])
@@ -622,7 +627,7 @@ def create_key2seq_and_code2key(cfg: dict) -> tuple[dict, dict]:
         codes,
         int(
             cfg["speller"]["screen"]["refresh_rate"]
-            / cfg["speller"]["presentation_rate"]
+            / cfg["speller"]["presentation_rate_hz"]
         ),
         axis=1,
     )
@@ -654,8 +659,8 @@ def run_speller_paradigm(
     phase: str (default: "training")
         The phase of the speller being either training or online. During training, the user is cued to attend to a
         random target key every trail. During online, the user attends to their target, while their EEG is decoded and
-        the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.). In the online phase,
-        the speller will continuously query an LSL marker stream to look for a potential decoding result from
+        the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.). In the online
+        phase, the speller will continuously query an LSL marker stream to look for a potential decoding result from
         the decoder module. If the stream contains a marker `speller_select <key_idx>`, the speller will
         stop the presenation and will show the selected symbol.
     config_path: Path (default: "./configs/speller.toml")
@@ -758,7 +763,7 @@ def cli_run(
     phase: str = "training",
     config_path: Path = Path("./configs/speller.toml"),  # relative to the project root
     log_level: int = 30,
-):
+) -> None:
     """
     Run the speller in a particular phase (training or online).
 
@@ -767,8 +772,8 @@ def cli_run(
     phase: str (default: "training")
         The phase of the speller being either training or online. During training, the user is cued to attend to a
         random target key every trail. During online, the user attends to their target, while their EEG is decoded and
-        the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.). In the online phase,
-        the speller will continuously query an LSL marker stream to look for a potential decoding result from
+        the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.). In the online
+        phase, the speller will continuously query an LSL marker stream to look for a potential decoding result from
         the decoder module. If the stream contains a marker `speller_select <key_idx>`, the speller will
         stop the presenation and will show the selected symbol.
     config_path: Path (default: "./configs/speller.toml")
