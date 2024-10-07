@@ -626,7 +626,7 @@ def create_key2seq_and_code2key(
     codes = np.repeat(
         codes,
         int(
-            cfg["speller"]["screen"]["refresh_rate"]
+            cfg["speller"]["screen"]["refresh_rate_hz"]
             / cfg["speller"]["presentation_rate_hz"]
         ),
         axis=1,
@@ -641,7 +641,7 @@ def create_key2seq_and_code2key(
             i_code += 1
     key_to_sequence["stt"] = [1] + [0] * int(
         (1 + cfg["speller"]["timing"]["trial_s"])
-        * cfg["speller"]["screen"]["refresh_rate"]
+        * cfg["speller"]["screen"]["refresh_rate_hz"]
     )
 
     return key_to_sequence, code_to_key
