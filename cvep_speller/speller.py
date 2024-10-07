@@ -219,7 +219,7 @@ class Speller(object):
         self
     ) -> None:
         name = self.cfg["run"]["online"]["decoder"]["lsl_stream_name"]
-        print(f"LSL connecting to: {name=}")
+        logger.info(f'Connecting to decoder stream "{name=}".')
         self.decoder_sw = StreamWatcher(name=name)
         self.decoder_sw.connect_to_stream()
 
@@ -357,8 +357,8 @@ class Speller(object):
                 self.keys[name][code[i % len(code)]].draw()
 
             self.window.flip()
-
-        logger.debug(f"All {n_frames=} shown.")
+        else:
+            logger.debug(f"All {n_frames=} shown.")
 
         # Send stop marker
         if stop_marker is not None:
@@ -461,7 +461,6 @@ class Speller(object):
             duration=self.cfg["speller"]["timing"]["feedback_s"],
             start_marker=self.cfg["speller"]["markers"]["feedback_start"],
             stop_marker=self.cfg["speller"]["markers"]["feedback_stop"],
-            phase="online",
         )
         self.highlights[prediction_key] = [0]
 
