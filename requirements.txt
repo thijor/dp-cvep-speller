@@ -1,5 +1,5 @@
 dareplane_utils>=0.0.9
-fire>=0.6.0
+fire>=0.7.0
 numpy>=1.26.4
 Pillow>=10.4.0
 psychopy>=2024.2.1
