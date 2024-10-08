@@ -6,3 +6,4 @@ psychopy>=2024.2.1
 pylsl>=1.16.2
 pyntbci>=1.4.1
 toml>=0.10.2
+ujson>=5.7.0
