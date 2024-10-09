@@ -388,7 +388,7 @@ class Speller(object):
         self
     ) -> bool:
         """
-        Check if the LSL stream contained a `speller_decode <key_idx>` marker.
+        Check if the LSL stream contained a `speller_select <key_idx>` marker.
         """
 
         # disregard all previous data
