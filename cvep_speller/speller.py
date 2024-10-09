@@ -215,9 +215,7 @@ class Speller(object):
             autoLog=False,
         )
 
-    def connect_to_decoder_lsl_stream(
-        self
-    ) -> None:
+    def connect_to_decoder_lsl_stream(self) -> None:
         name = self.cfg["run"]["online"]["decoder"]["lsl_stream_name"]
         logger.info(f'Connecting to decoder stream "{name=}".')
         self.decoder_sw = StreamWatcher(name=name)
@@ -347,7 +345,6 @@ class Speller(object):
 
             # check selection marker
             if self.decoder_sw is not None:
-                self.decoder_sw.update()  # check every frame
                 if self.has_decoding_event():
                     self.handle_decoding_event()
                     break
@@ -384,9 +381,7 @@ class Speller(object):
             self.window.setMouseVisible(True)
             self.window.close()
 
-    def has_decoding_event(
-        self
-    ) -> bool:
+    def has_decoding_event(self) -> bool:
         """
         Check if the LSL stream contained a `speller_select <key_idx>` marker.
         """
@@ -397,29 +392,30 @@ class Speller(object):
 
         if self.decoder_sw.n_new != 0:
             prediction = self.decoder_sw.unfold_buffer()[
-                -self.decoder_sw.n_new:
+                -self.decoder_sw.n_new :
             ].flatten()
 
             logger.debug(f"Received: prediction={prediction}")
 
-            selections = [
-                c
-                for c in prediction
-                if isinstance(c, str) and c.startswith("speller_select")
-            ]
+            # selections = [
+            #     c
+            #     for c in prediction
+            #     if isinstance(c, str) and c.startswith("speller_select")
+            # ]
+            selections = prediction[prediction >= 0]
 
             if len(selections) > 0:
                 # In case multiple decode markers arrive -> consider only last
-                self.last_selected_key_idx = int(
-                    selections[-1].replace("speller_select", "")
-                )
+                # self.last_selected_key_idx = int(
+                #     selections[-1].replace("speller_select", "")
+                # )
+                self.last_selected_key_idx = int(selections[-1])
+                logger.debug(f"Selection: {self.last_selected_key_idx}, {selections=}")
                 return True
 
         return False
 
-    def handle_decoding_event(
-        self
-    ) -> None:
+    def handle_decoding_event(self) -> None:
         # Decoding
         logger.info("Waiting for decoding")
 
@@ -464,9 +460,7 @@ class Speller(object):
         )
         self.highlights[prediction_key] = [0]
 
-    def init_highlights_with_zero(
-        self
-    ) -> None:
+    def init_highlights_with_zero(self) -> None:
         # Setup highlights
         self.highlights = dict()
         for row in self.cfg["speller"]["keys"]["keys"]:
@@ -475,9 +469,7 @@ class Speller(object):
         self.highlights["stt"] = [0]
 
 
-def setup_speller(
-    cfg: dict
-) -> Speller:
+def setup_speller(cfg: dict) -> Speller:
 
     # Setup speller
     speller = Speller(
@@ -614,9 +606,7 @@ def setup_speller(
     return speller
 
 
-def create_key2seq_and_code2key(
-    cfg: dict
-) -> tuple[dict, dict]:
+def create_key2seq_and_code2key(cfg: dict) -> tuple[dict, dict]:
 
     # Setup code sequences
     codes = np.load(
@@ -783,7 +773,7 @@ def cli_run(
     """
 
     # activate the console logging if started via CLI
-    logger = get_logger("speller", add_console_handler=True)
+    logger = get_logger("cvep-speller", add_console_handler=True)
     logger.setLevel(log_level)
 
     run_speller_paradigm(phase=phase, config_path=config_path)
