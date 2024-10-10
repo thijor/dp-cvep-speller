@@ -442,7 +442,7 @@ class Speller(object):
             symbol = KEY_MAPPING[symbol]
         if symbol == "<":
             text = text[:-1]
-        if symbol == "space":
+        elif symbol == "space":
             text = text + " "
         else:
             text += symbol
