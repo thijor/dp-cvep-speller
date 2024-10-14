@@ -1,6 +1,7 @@
 import json
 import random
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -320,6 +321,7 @@ class Speller(object):
             The marker to log when stimulation stops. If None, no marker is logged.
         """
         self.current_trial_idx += 1
+
         # Set number of frames
         if duration is None:
             n_frames = len(sequences[list(sequences.keys())[0]])
@@ -336,6 +338,7 @@ class Speller(object):
 
         # Loop frame flips
         for i in range(n_frames):
+            stime = time.time()
 
             # Check quiting
             if i % 60 == 0:
@@ -343,7 +346,7 @@ class Speller(object):
                     self.quit()
                     break
 
-            # check selection marker
+            # Check selection marker
             if self.decoder_sw is not None:
                 if self.has_decoding_event():
                     self.handle_decoding_event()
@@ -352,6 +355,11 @@ class Speller(object):
             # Present keys with color depending on code state
             for name, code in sequences.items():
                 self.keys[name][code[i % len(code)]].draw()
+
+            # Check if frame flip can happen within a frame
+            etime = time.time() - stime()
+            if etime >= 1 / self.refresh_rate:
+                logger.warn(f"Frame flip took too long ({etime:.6f}), dropping frames!")
 
             self.window.flip()
         else:
@@ -364,8 +372,6 @@ class Speller(object):
         # Set autoDraw to True to keep speller visible
         for key in self.keys.values():
             key[0].setAutoDraw(True)
-
-        self.window.flip()
 
     def quit(
         self,
