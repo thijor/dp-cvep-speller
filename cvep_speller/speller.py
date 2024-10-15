@@ -90,7 +90,6 @@ class Speller(object):
         self.distance_cm = distance_cm
         self.refresh_rate = refresh_rate
         self.quit_controls = quit_controls
-        self.quit_phrase = quit_phase
 
         # Setup monitor
         self.monitor = monitors.Monitor(
