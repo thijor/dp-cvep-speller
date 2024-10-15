@@ -737,7 +737,7 @@ def run_speller_paradigm(
             stop_marker=cfg["speller"]["markers"]["iti_stop"],
         )
 
-        if speller.get_text_field("text").endswith(cfg["speller"]["quit_phrase"]):
+        if phase == "online" and speller.get_text_field("text").endswith(cfg["speller"]["quit_phrase"]):
             break
 
     # Wait to stop
