@@ -90,6 +90,7 @@ class Speller(object):
         self.distance_cm = distance_cm
         self.refresh_rate = refresh_rate
         self.quit_controls = quit_controls
+        self.quit_phrase = quit_phase
 
         # Setup monitor
         self.monitor = monitors.Monitor(
@@ -357,7 +358,7 @@ class Speller(object):
                 self.keys[name][code[i % len(code)]].draw()
 
             # Check if frame flip can happen within a frame
-            etime = time.time() - stime()
+            etime = time.time() - stime
             if etime >= 1 / self.refresh_rate:
                 logger.warn(f"Frame flip took too long ({etime:.6f}), dropping frames!")
 
@@ -398,7 +399,7 @@ class Speller(object):
 
         if self.decoder_sw.n_new != 0:
             prediction = self.decoder_sw.unfold_buffer()[
-                -self.decoder_sw.n_new :
+                -self.decoder_sw.n_new:
             ].flatten()
 
             logger.debug(f"Received: prediction={prediction}")
@@ -657,7 +658,7 @@ def run_speller_paradigm(
         the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.). In the online
         phase, the speller will continuously query an LSL marker stream to look for a potential decoding result from
         the decoder module. If the stream contains a marker `speller_select <key_idx>`, the speller will
-        stop the presenation and will show the selected symbol.
+        stop the presentation and will show the selected symbol.
     config_path: Path (default: "./configs/speller.toml")
         The path to the configuration file containing session specific hyperparameters for the speller setup.
 
@@ -736,6 +737,9 @@ def run_speller_paradigm(
             stop_marker=cfg["speller"]["markers"]["iti_stop"],
         )
 
+        if speller.get_text_field("text").endswith(cfg["speller"]["quit_phrase"]):
+            break
+
     # Wait to stop
     logger.info("Waiting for button press to stop")
     speller.set_text_field(name="messages", text="Press button to stop.")
@@ -770,7 +774,7 @@ def cli_run(
         the decoded key is used to perform an action (e.g., add a symbol to a sentence, backspace, etc.). In the online
         phase, the speller will continuously query an LSL marker stream to look for a potential decoding result from
         the decoder module. If the stream contains a marker `speller_select <key_idx>`, the speller will
-        stop the presenation and will show the selected symbol.
+        stop the presentation and will show the selected symbol.
     config_path: Path (default: "./configs/speller.toml")
         The path to the configuration file containing session specific hyperparameters for the speller setup.
     log_level : int (default: 30)
