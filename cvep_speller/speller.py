@@ -1,4 +1,3 @@
-import json
 import random
 import sys
 import time
@@ -125,7 +124,6 @@ class Speller(object):
         self.last_selected_key_idx: int | None = None
         self.key_map: dict[int, str] = {}
         self.highlights: dict = {}
-        self.current_trial_idx: int = 0
         self.decoder_sw = None
 
     def add_key(
@@ -320,7 +318,6 @@ class Speller(object):
         stop_marker: str (default: None)
             The marker to log when stimulation stops. If None, no marker is logged.
         """
-        self.current_trial_idx += 1
 
         # Set number of frames
         if duration is None:
@@ -427,16 +424,6 @@ class Speller(object):
 
         prediction = self.last_selected_key_idx
         prediction_key = self.key_map[prediction]
-
-        self.log(
-            json.dumps(
-                {
-                    "i_trial": self.current_trial_idx,
-                    "prediction": prediction,
-                    "prediction_key": prediction_key,
-                }
-            )
-        )
         logger.debug(
             f"Decoding: prediction={prediction} prediction_key={prediction_key}"
         )
@@ -461,7 +448,7 @@ class Speller(object):
         self.run(
             sequences=self.highlights,
             duration=self.cfg["speller"]["timing"]["feedback_s"],
-            start_marker=self.cfg["speller"]["markers"]["feedback_start"],
+            start_marker=f'self.cfg["speller"]["markers"]["feedback_start"];label={prediction};key={prediction_key}',
             stop_marker=self.cfg["speller"]["markers"]["feedback_stop"],
         )
         self.highlights[prediction_key] = [0]
@@ -491,14 +478,6 @@ def setup_speller(cfg: dict) -> Speller:
         cfg=cfg,
     )
     ppd = speller.get_pixels_per_degree()
-    python_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    )
-    speller.log(
-        marker=json.dumps(
-            {"python_version": python_version, "psychopy_version": psychopy.__version__}
-        )
-    )
 
     # Add stimulus timing tracker at left top of the screen
     x_pos = int(
@@ -676,13 +655,18 @@ def run_speller_paradigm(
     speller.key_map = code_to_key
     n_classes = len(code_to_key)
 
-    speller.log(marker=json.dumps({"codes": key_to_sequence, "labels": code_to_key}))
-
     # Wait to start run
     logger.info("Waiting for button press to start")
     speller.set_text_field(name="messages", text="Press button to start.")
     event.waitKeys(keyList=cfg["speller"]["controls"]["continue"])
     speller.set_text_field(name="messages", text="")
+
+    # Log info
+    python_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+    speller.log(marker=f"version;python={python_version};psychopy={psychopy.__version__}")
+    speller.log(marker=f"setup;codes={key_to_sequence};labels={code_to_key}")
 
     # Start run
     logger.info("Starting")
@@ -700,12 +684,6 @@ def run_speller_paradigm(
             # Set a random target
             target = random.randint(0, n_classes - 1)
             target_key = code_to_key[target]
-            speller.log(
-                json.dumps(
-                    {"i_trial": i_trial, "target": target, "target_key": target_key}
-                )
-            )
-            logger.debug(f"Cue: target={target} target_key={target_key}")
 
             # Cue
             logger.info(f"Cueing {target_key} ({target})")
@@ -713,7 +691,7 @@ def run_speller_paradigm(
             speller.run(
                 sequences=speller.highlights,
                 duration=cfg["speller"]["timing"]["cue_s"],
-                start_marker=cfg["speller"]["markers"]["cue_start"],
+                start_marker=f'{cfg["speller"]["markers"]["cue_start"]};label={target};key={target_key}',
                 stop_marker=cfg["speller"]["markers"]["cue_stop"],
             )
             speller.highlights[target_key] = [0]
@@ -723,7 +701,7 @@ def run_speller_paradigm(
         speller.run(
             sequences=key_to_sequence,
             duration=cfg["speller"]["timing"]["trial_s"],
-            start_marker=cfg["speller"]["markers"]["trial_start"],
+            start_marker=f'{cfg["speller"]["markers"]["trial_start"]}',
             stop_marker=cfg["speller"]["markers"]["trial_stop"],
         )
 
@@ -732,7 +710,7 @@ def run_speller_paradigm(
         speller.run(
             sequences=speller.highlights,
             duration=cfg["speller"]["timing"]["iti_s"],
-            start_marker=cfg["speller"]["markers"]["iti_start"],
+            start_marker=f'{cfg["speller"]["markers"]["iti_start"]}',
             stop_marker=cfg["speller"]["markers"]["iti_stop"],
         )
 
