@@ -448,7 +448,7 @@ class Speller(object):
         self.run(
             sequences=self.highlights,
             duration=self.cfg["speller"]["timing"]["feedback_s"],
-            start_marker=f'self.cfg["speller"]["markers"]["feedback_start"];label={prediction};key={prediction_key}',
+            start_marker=f'{self.cfg["speller"]["markers"]["feedback_start"]};label={prediction};key={prediction_key}',
             stop_marker=self.cfg["speller"]["markers"]["feedback_stop"],
         )
         self.highlights[prediction_key] = [0]
