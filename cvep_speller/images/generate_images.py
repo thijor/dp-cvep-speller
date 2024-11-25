@@ -41,10 +41,10 @@ for key in KEYS:
 		else:
 			symbol = key
 		for color in KEY_COLORS:
-			img = Image.new("RGB", (WIDTH, HEIGHT), color=color)
+			img = Image.new(mode="RGB", size=(WIDTH, HEIGHT), color=color)
 			img_draw = ImageDraw.Draw(img)
 			_, _, text_width, text_height = img_draw.textbbox(xy=(0, 0), text=symbol, font=font)
 			x_pos = (WIDTH - text_width) / 2
 			y_pos = (HEIGHT - text_height) / 2
-			img_draw.text((x_pos, y_pos), symbol, font=font, fill=TEXT_COLOR)
+			img_draw.text(xy=(x_pos, y_pos), text=symbol, font=font, fill=TEXT_COLOR)
 			img.save(f"{key}_{color}.png")
