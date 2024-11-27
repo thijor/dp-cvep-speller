@@ -6,7 +6,7 @@ HEIGHT = 150
 
 PATCH_HEIGHT = 30
 PATCH_WIDTH = 30
-N_PATCHES = 75
+N_PATCHES = 35
 
 TEXT_COLOR = (0, 0, 0)
 FONT_SIZE = 30
@@ -33,7 +33,7 @@ KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
 }
 
 
-def generate_gabor_patch(size=(30, 30), theta=np.pi / 2, gamma=0.6, lamda=2.5, phi=0.0, sigma=1.5):
+def generate_gabor_patch(size=(60, 60), theta=np.pi / 2, gamma=0.6, lamda=8, phi=0.0, sigma=4):
     x, y = np.meshgrid(
         np.linspace(-size[1] // 2, size[1] // 2, size[1]),
         np.linspace(-size[0] // 2, size[0] // 2, size[0]))
@@ -48,8 +48,7 @@ def generate_gabor_patch(size=(30, 30), theta=np.pi / 2, gamma=0.6, lamda=2.5, p
 # Create image with gabor patches
 grating_image = np.zeros(shape=(WIDTH, HEIGHT), dtype="float32")
 for i in range(N_PATCHES):
-    theta = np.random.rand() * np.pi
-    patch = generate_gabor_patch(size=(PATCH_HEIGHT, PATCH_WIDTH), theta=theta)
+    patch = generate_gabor_patch(size=(PATCH_HEIGHT, PATCH_WIDTH), theta=np.random.rand() * np.pi)
     while True:
         x_pos = int(np.random.rand() * (WIDTH - PATCH_WIDTH))
         y_pos = int(np.random.rand() * (HEIGHT - PATCH_HEIGHT))
@@ -70,7 +69,7 @@ for key in KEYS:
 
         img = Image.fromarray(np.repeat(grating_image[:, :, np.newaxis], repeats=3, axis=2).astype("uint8"))
         img_draw = ImageDraw.Draw(img)
-        img.save(f"gray_grating.png")
+        img.save(f"grating.png")
 
     else:
         if key in KEY_MAPPING:
