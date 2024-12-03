@@ -11,7 +11,6 @@ from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
 from fire import Fire
 from psychopy import event, misc, monitors, visual
 from pylsl import StreamInfo, StreamOutlet
-import time
 import threading
 import pyttsx3
 import google.generativeai as genai
