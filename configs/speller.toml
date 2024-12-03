@@ -69,7 +69,7 @@ mode = "online"
 [speller.AC_online]
 models = ["gemini-1.5-pro", "gemini-1.5-flash-8b", "gemini-1.5-flash"]
 model_idx = 2
-api_key = "AIzaSyCkmc2KAd2OOi7UXnCXMfsiPH1uC-AA7X4"
+api_key = ""
 online_instructions = "<OBJECTIVE_AND_PERSONA>\nYou are an autocorrect and autocomplete assistant. Your task is to correct the given sentence then complete the last word or phrase. If the given sentence is random symbols, respond with the exact given sentence. \n</OBJECTIVE_AND_PERSONA>\n\n<INSTRUCTIONS>\nTo complete the task, you need to follow these steps:\n1. Understand the current word or word fragment.\n2. Understand the context of the sentence.\n3. Correct any grammatical or spelling errors.\n4. Finish the last word or phrase naturally.\n</INSTRUCTIONS>\n\n<CONSTRAINTS>\nDos and don'ts for the following aspects\n1. Do try to complete the last word or phrase.\n2. Do fix any mistakes or errors you notice.\n3. Don't use special characters. \n</CONSTRAINTS>"
 temperature = 1.0
 output_length = 20
