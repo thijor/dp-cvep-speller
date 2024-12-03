@@ -5,14 +5,18 @@ codes_file = "mgold_61_6521.npz"
 presentation_rate_hz = 60
 quit_phrase = "!!"
 
+[run]
+phase = "training"
+lsl_stream_name = "cvep-speller-stream"
+
 [speller.screen]
 id = 1
-resolution = [1920, 1080]
+resolution = [ 1920, 1080,]
 width_cm = 53.0
 distance_cm = 60.0
-background_color = [0, 0, 0]
+background_color = [ 0, 0, 0,]
 refresh_rate_hz = 60
-full_screen = true # false for debugging
+full_screen = true
 
 [speller.timing]
 cue_s = 0.7
@@ -23,28 +27,25 @@ iti_s = 0.3
 [speller.stt]
 width_dva = 2.2
 height_dva = 2.2
-colors = ["black", "white"]
+colors = [ "black", "white",]
 
 [speller.keys]
 width_dva = 3.0
 height_dva = 3.0
 space_dva = 0.5
-colors = ["black", "white", "green", "blue"]
-keys = [
-    ["!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+"],  # 12
-    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="],  # 12
-    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]"],  # 12
-    ["A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar"],  # 12
-    ["tilde", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question", "slash"],  # 12
-    ["smaller", "space", "larger"]]  # 3
+colors = [ "black", "white", "green", "blue",]
+qwerty = true
+keys_lower = [ [ "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="], [ "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "backslash"], [ "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "speaker"], ["shift", "z", "x", "c", "v", "b", "n", "m", "comma", ".", "slash"], [ "smaller", "space", "larger"] ]
+keys = [ [ "tilde", "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "=",], [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "bar",], [ "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "speaker",], ["shift", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question",], [ "smaller", "space", "larger",],]
+keys_previous = [ [ "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+",], [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=",], [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]",], [ "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar",], [ "tilde", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question", "slash",], [ "smaller", "space", "larger",],]
 
 [speller.text_fields]
 height_dva = 2.3
-background_color = [-0.05, -0.05, -0.05]
+background_color = [ -0.05, -0.05, -0.05,]
 
 [speller.controls]
-continue = ["c"]
-quit = ["q", "escape"]
+continue = [ "c",]
+quit = [ "q", "escape",]
 
 [speller.markers]
 cue_start = "start_cue"
@@ -56,9 +57,22 @@ feedback_stop = "stop_feedback"
 iti_start = "start_iti"
 iti_stop = "stop_iti"
 
-[run]
-phase = "training"
-lsl_stream_name = "cvep-speller-stream"
+[speller.TTS]
+rate = 225
+volume = 1.0
+voice_idx = 0
+
+[speller.AC]
+enabled = true
+mode = "online"
+
+[speller.AC_online]
+models = ["gemini-1.5-pro", "gemini-1.5-flash-8b", "gemini-1.5-flash"]
+model_idx = 2
+api_key = "AIzaSyCkmc2KAd2OOi7UXnCXMfsiPH1uC-AA7X4"
+online_instructions = "<OBJECTIVE_AND_PERSONA>\nYou are an autocorrect and autocomplete assistant. Your task is to correct the given sentence then complete the last word or phrase. If the given sentence is random symbols, respond with the exact given sentence. \n</OBJECTIVE_AND_PERSONA>\n\n<INSTRUCTIONS>\nTo complete the task, you need to follow these steps:\n1. Understand the current word or word fragment.\n2. Understand the context of the sentence.\n3. Correct any grammatical or spelling errors.\n4. Finish the last word or phrase naturally.\n</INSTRUCTIONS>\n\n<CONSTRAINTS>\nDos and don'ts for the following aspects\n1. Do try to complete the last word or phrase.\n2. Do fix any mistakes or errors you notice.\n3. Don't use special characters. \n</CONSTRAINTS>"
+temperature = 1.0
+output_length = 20
 
 [run.training]
 n_trials = 10
