@@ -11,7 +11,6 @@ from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
 from fire import Fire
 from psychopy import event, misc, monitors, visual
 from pylsl import StreamInfo, StreamOutlet
-import time
 import threading
 import pyttsx3
 import google.generativeai as genai
@@ -134,8 +133,8 @@ class Speller(object):
 
         # Set up variables for text to speech, autocompletion, and qwerty layout
         self.sample_idx = 0 # used to iterate through sample symbols, iterated in handle_decoding_event
-        #self.sample_symbols = ["shift","H","shift","e","l","l","o"," ","w","o","r","l","d", " ", "shift", "I", "shift", "a", "m"] # sample symbols for the speller
-        self.sample_symbols = ["shift","H","shift","i","speaker"]
+        #self.sample_symbols = ["shift","H","shift","e","l","l","o"," ","w","o","r","l","d", " ", "shift", "I", "shift", "a", "m"] # sample symbols for the speller to receive
+        self.sample_symbols = []
         self.all_keys = self.set_all_keys(cfg) # map all qwerty keys to their counterparts (A - > a, ! -> 1, etc.)
         self.next_AC = "" # holds the next autocompletion result to be displayed
         self.AC_engine = self.init_AC_engine()
@@ -497,8 +496,9 @@ class Speller(object):
         AC_flag = self.cfg["speller"]["AC"]["enabled"]
 
         # update the autocomplete text field with the current text, update variable to hold the next autocompletion result in case autocomplete key is pressed
-        self.set_text_field(name="AC_text", text=self.next_AC)
-        autocompleted_text = self.next_AC
+        if AC_flag:
+            self.set_text_field(name="AC_text", text=self.next_AC)
+            autocompleted_text = self.next_AC
 
         # if there is an available list of sample symbols, use them, otherwise use the random prediction
         if self.sample_idx < len(self.sample_symbols):
@@ -748,21 +748,22 @@ def setup_speller(cfg: dict) -> Speller:
     )
 
     # using the positions of the text field with an offset, add a text field for the autocompletion results
-    text_box_height = int(cfg["speller"]["text_fields"]["height_dva"] * ppd)
-    speller.add_text_field(
-    name="AC_text", 
-    text="", 
-    size=(
-        int(
-            cfg["speller"]["screen"]["resolution"][0]
-            - cfg["speller"]["stt"]["width_dva"] * ppd
+    if cfg["speller"]["AC"]["enabled"]:
+        text_box_height = int(cfg["speller"]["text_fields"]["height_dva"] * ppd)
+        speller.add_text_field(
+        name="AC_text", 
+        text="", 
+        size=(
+            int(
+                cfg["speller"]["screen"]["resolution"][0]
+                - cfg["speller"]["stt"]["width_dva"] * ppd
+            ),
+            text_box_height,
         ),
-        text_box_height,
-    ),
-    pos=(x_pos, y_pos - text_box_height),
-    background_color=cfg["speller"]["text_fields"]["background_color"],  
-    bold=True,
-)
+        pos=(x_pos, y_pos - text_box_height),
+        background_color=cfg["speller"]["text_fields"]["background_color"],  
+        bold=True,
+    )
 
     # Add text field at the bottom of the screen containing system messages
     x_pos = 0
@@ -968,7 +969,8 @@ def run_speller_paradigm(
             )
             speller.highlights[target_key] = [0]
 
-        speller.set_text_field(name="AC_text", text=speller.next_AC)
+        if speller.cfg["speller"]["AC"]["enabled"]:
+            speller.set_text_field(name="AC_text", text=speller.next_AC)
 
         # Trial
         logger.info("Starting stimulation")
