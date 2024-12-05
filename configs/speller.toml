@@ -1,6 +1,7 @@
 [speller]
 images_dir = "./cvep_speller/images/"
 codes_dir = "./cvep_speller/codes/"
+layout_file = "layout.json" # Just the filename because we load from codes_dir + layout_file
 codes_file = "mgold_61_6521.npz"
 presentation_rate_hz = 60
 quit_phrase = "!!"

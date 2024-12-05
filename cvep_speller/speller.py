@@ -15,6 +15,8 @@ import threading
 import pyttsx3
 import google.generativeai as genai
 import autocomplete
+import os
+import json
 
 from cvep_speller.utils.logging import logger
 
@@ -861,7 +863,7 @@ def setup_speller(cfg: dict) -> Speller:
     return speller
 
 
-def create_key2seq_and_code2key(cfg: dict) -> tuple[dict, dict]:
+def create_key2seq_and_code2key(cfg: dict, is_online:bool) -> tuple[dict, dict]:
 
     # Setup code sequences
     codes = np.load(
@@ -875,6 +877,32 @@ def create_key2seq_and_code2key(cfg: dict) -> tuple[dict, dict]:
         ),
         axis=1,
     )
+
+    # Optimal layout + subset:
+    if is_online:
+
+        # Fetch the subset+layout file location
+        optimal_layout_file = os.path.join(cfg["speller"]["codes_dir"], cfg["speller"]["layout_file"])
+        if os.path.isfile(optimal_layout_file):
+            with open(optimal_layout_file, 'r') as infile:
+                data = json.load(infile)
+                subset = np.array(data["subset"])
+                optimal_layout = np.array(data["optimal_layout"])
+            
+            # Set the loaded codes with subset and optimal layout
+            # Note that this means that while i_code still refers to indices 0 trough to n_keys
+            # The actual code that's placed there might for example originally be indices 59, 12, 0...
+            # You can find the actual index values of the original code file by printing/comparing the optimal_layout np array.
+            codes = codes[subset]
+            codes = codes[optimal_layout]
+            logger.info("Set the keyboard codes with the optimal layout + subset.")
+        else:
+            logger.info("No layout.json file found.")
+
+    else:
+        logger.debug("For training there's no optimal layout/subset yet.")
+    
+
     key_to_sequence = dict()
     code_to_key = dict()
     i_code = 0
@@ -926,7 +954,7 @@ def run_speller_paradigm(
     if phase != "training":
         speller.connect_to_decoder_lsl_stream()
 
-    key_to_sequence, code_to_key = create_key2seq_and_code2key(cfg)
+    key_to_sequence, code_to_key = create_key2seq_and_code2key(cfg, is_online=phase=="online")
     speller.key_map = code_to_key
     n_classes = len(code_to_key)
 
