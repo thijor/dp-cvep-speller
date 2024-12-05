@@ -131,15 +131,15 @@ class Speller(object):
         self.highlights: dict = {}
         self.decoder_sw = None
 
-        # Set up variables for text to speech, autocompletion, and qwerty layout
+        # Set up variables for text to speech, autocompletion, and shifting keyboard layout
         self.sample_idx = 0 # used to iterate through sample symbols, iterated in handle_decoding_event
         #self.sample_symbols = ["shift","H","shift","e","l","l","o"," ","w","o","r","l","d", " ", "shift", "I", "shift", "a", "m"] # sample symbols for the speller to receive
         self.sample_symbols = []
-        self.all_keys = self.set_all_keys(cfg) # map all qwerty keys to their counterparts (A - > a, ! -> 1, etc.)
+        self.all_keys = self.set_all_keys(cfg) # map all keys to their counterparts (A - > a, ! -> 1, etc.)
         self.next_AC = "" # holds the next autocompletion result to be displayed
         self.AC_engine = self.init_AC_engine()
         self.TTS_engine = self.init_tts()
-        self.case_flag = not self.cfg["speller"]["keys"]["qwerty"] # True for upper case, False for lower case, start in lower case if qwerty enabled
+        self.case_flag = not self.cfg["speller"]["keys"]["use_shift_keyboard"] # True for upper case, False for lower case, start in lower case if shifting is enabled
         self.tts_flag = False # used to queue up text to speech
     
 
@@ -566,7 +566,7 @@ class Speller(object):
     def init_highlights_with_zero(self) -> None:
         # Setup highlights
         self.highlights = dict()
-        if self.cfg["speller"]["keys"]["qwerty"]:
+        if self.cfg["speller"]["keys"]["use_shift_keyboard"]:
             keys_from_cfg = self.cfg["speller"]["keys"]["keys"]
         else:
             keys_from_cfg = self.cfg["speller"]["keys"]["keys_previous"]
@@ -576,7 +576,7 @@ class Speller(object):
                 self.highlights[key] = [0]
         self.highlights["stt"] = [0]
 
-    # map all qwerty keys to their counterparts (A - > a, ! -> 1, etc.)
+    # map all keys to their counterparts (A - > a, ! -> 1, etc.)
     def set_all_keys(self, cfg : dict) -> dict:
         all_keys = {}
         for y in range(len(cfg["speller"]["keys"]["keys"])):
@@ -618,6 +618,7 @@ class Speller(object):
             online_instructions = self.cfg["speller"]["AC_online"]["online_instructions"]
             model = genai.GenerativeModel(models[model_idx], system_instruction=online_instructions)
             return model
+        
     
     # use the generative AI model to generate the next word in the sentence
     def online_autocomplete(self, text: str) -> str:
@@ -783,8 +784,9 @@ def setup_speller(cfg: dict) -> Speller:
         alignment="center",
     )
 
-    # Add keys, check if qwerty is enabled, if so use the qwerty keys, otherwise use the previous keys
-    if cfg["speller"]["keys"]["qwerty"]:
+    # Add keys
+    # check if shifting is enabled, if so use the new keys, otherwise use the previous keys
+    if cfg["speller"]["keys"]["use_shift_keyboard"]:
         keys_from_cfg = cfg["speller"]["keys"]["keys"]
     else:
         keys_from_cfg = cfg["speller"]["keys"]["keys_previous"]
@@ -826,8 +828,8 @@ def setup_speller(cfg: dict) -> Speller:
                     / f'{keys_from_cfg[y][x]}_{color}.png'
                     for color in cfg["speller"]["keys"]["colors"]
                 ]
-                # if qwerty is enabled, check if the key has a different shift key, if so, add the lowercase version of the key
-                if cfg["speller"]["keys"]["qwerty"] and (keys_from_cfg[y][x]) != (cfg["speller"]["keys"]["keys_lower"][y][x]):
+                # if shifting is enabled, check if the key has a different shift key, if so, add the lowercase version of the key
+                if cfg["speller"]["keys"]["use_shift_keyboard"] and (keys_from_cfg[y][x]) != (cfg["speller"]["keys"]["keys_lower"][y][x]):
                     # check if the key has a lower case version 
                     if (keys_from_cfg[y][x]).isalpha() and len(keys_from_cfg[y][x]) == 1: 
                         images_lower = [
@@ -876,8 +878,8 @@ def create_key2seq_and_code2key(cfg: dict) -> tuple[dict, dict]:
     key_to_sequence = dict()
     code_to_key = dict()
     i_code = 0
-    # if qwerty is enabled, use the qwerty keys, otherwise use the previous keys
-    if cfg["speller"]["keys"]["qwerty"]:
+    # if shifting is enabled, use the new keys, otherwise use the previous keys
+    if cfg["speller"]["keys"]["use_shift_keyboard"]:
         keys_from_cfg = cfg["speller"]["keys"]["keys"]
     else:
         keys_from_cfg = cfg["speller"]["keys"]["keys_previous"]
@@ -969,7 +971,7 @@ def run_speller_paradigm(
             )
             speller.highlights[target_key] = [0]
 
-        if speller.cfg["speller"]["AC"]["enabled"]:
+        if phase == "online" and speller.cfg["speller"]["AC"]["enabled"]:
             speller.set_text_field(name="AC_text", text=speller.next_AC)
 
         # Trial
