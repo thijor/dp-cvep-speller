@@ -30,7 +30,7 @@ width_dva = 3.0
 height_dva = 3.0
 space_dva = 0.5
 colors = [ "black", "white", "green", "blue",]
-use_shift_keyboard = false
+use_shift_keyboard = false # if false: set number_of_keyboardkeys to 63, 52 if true in decoder.toml 
 keys_lower = [ [ "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="], [ "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "backslash"], [ "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "speaker"], ["shift", "z", "x", "c", "v", "b", "n", "m", "comma", ".", "slash"], [ "smaller", "space", "larger"] ]
 keys = [ [ "tilde", "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "=",], [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "bar",], [ "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "speaker",], ["shift", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question",], [ "smaller", "space", "larger",],]
 keys_previous = [ [ "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+",], [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=",], [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]",], [ "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar",], [ "tilde", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question", "slash",], [ "smaller", "space", "larger",],]
