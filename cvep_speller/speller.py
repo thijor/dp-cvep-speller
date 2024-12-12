@@ -865,10 +865,11 @@ def setup_speller(cfg: dict) -> Speller:
 
 def create_key2seq_and_code2key(cfg: dict, phase:str) -> tuple[dict, dict]:
 
+    codes_file = Path(cfg["run"][phase]["codes_file"])
+
     # Setup code sequences from the correct phase
     codes = np.load(
-        Path(cfg["speller"]["codes_dir"]) / Path(cfg["run"][phase]["codes_file"])
-    )["codes"]
+        Path(cfg["speller"]["codes_dir"]) / codes_file)["codes"]
     codes = np.repeat(
         codes,
         int(
@@ -887,6 +888,9 @@ def create_key2seq_and_code2key(cfg: dict, phase:str) -> tuple[dict, dict]:
                 data = json.load(infile)
                 subset = np.array(data["subset"])
                 optimal_layout = np.array(data["optimal_layout"])
+            
+            # Extra assertion check. The speller and decoder online/training codefiles should match.
+            assert codes_file.name == data["online_file"], "The loaded stimuli and decoder stimuli for online mismatch, check the config files."
             
             # Set the loaded codes with subset and optimal layout
             # Note that this means that while i_code still refers to indices 0 trough to n_keys
