@@ -2,7 +2,6 @@
 images_dir = "./cvep_speller/images/"
 codes_dir = "./cvep_speller/codes/"
 layout_file = "layout.json" # Just the filename because we load from codes_dir + layout_file
-codes_file = "mgold_61_6521.npz"
 presentation_rate_hz = 60
 quit_phrase = "!!"
 
@@ -76,9 +75,11 @@ phase = "training"
 lsl_stream_name = "cvep-speller-stream"
 
 [run.training]
+codes_file = "mgold_61_6521.npz"
 n_trials = 10
 
 [run.online]
+codes_file = "mgold_61_6521.npz"
 n_trials = 999
 
 [run.online.decoder]

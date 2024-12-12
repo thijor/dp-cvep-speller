@@ -863,11 +863,11 @@ def setup_speller(cfg: dict) -> Speller:
     return speller
 
 
-def create_key2seq_and_code2key(cfg: dict, is_online:bool) -> tuple[dict, dict]:
+def create_key2seq_and_code2key(cfg: dict, phase:str) -> tuple[dict, dict]:
 
-    # Setup code sequences
+    # Setup code sequences from the correct phase
     codes = np.load(
-        Path(cfg["speller"]["codes_dir"]) / Path(cfg["speller"]["codes_file"])
+        Path(cfg["speller"]["codes_dir"]) / Path(cfg["run"][phase]["codes_file"])
     )["codes"]
     codes = np.repeat(
         codes,
@@ -879,8 +879,7 @@ def create_key2seq_and_code2key(cfg: dict, is_online:bool) -> tuple[dict, dict]:
     )
 
     # Optimal layout + subset:
-    if is_online:
-
+    if phase == "online":
         # Fetch the subset+layout file location
         optimal_layout_file = os.path.join(cfg["speller"]["codes_dir"], cfg["speller"]["layout_file"])
         if os.path.isfile(optimal_layout_file):
@@ -954,7 +953,7 @@ def run_speller_paradigm(
     if phase != "training":
         speller.connect_to_decoder_lsl_stream()
 
-    key_to_sequence, code_to_key = create_key2seq_and_code2key(cfg, is_online=phase=="online")
+    key_to_sequence, code_to_key = create_key2seq_and_code2key(cfg, phase)
     speller.key_map = code_to_key
     n_classes = len(code_to_key)
 
