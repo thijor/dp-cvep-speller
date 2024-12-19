@@ -75,11 +75,11 @@ phase = "training"
 lsl_stream_name = "cvep-speller-stream"
 
 [run.training]
-codes_file = "mseq_61_shift.npz"
+codes_file = "mgold_61_6521.npz"
 n_trials = 10
 
 [run.online]
-codes_file = "mseq_61_shift.npz"
+codes_file = "mgold_61_6521.npz"
 n_trials = 999
 
 [run.online.decoder]
