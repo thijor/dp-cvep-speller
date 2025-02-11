@@ -887,24 +887,22 @@ def create_key2seq_and_code2key(cfg: dict, phase:str) -> tuple[dict, dict]:
             with open(optimal_layout_file, 'r') as infile:
                 data = json.load(infile)
                 subset = np.array(data["subset"])
-                optimal_layout = np.array(data["optimal_layout"])
+                layout = np.array(data["layout"])
             
             # Extra assertion check. The speller and decoder online/training codefiles should match.
-            assert codes_file.name == data["online_file"], "The loaded stimuli and decoder stimuli for online mismatch, check the config files."
+            assert codes_file.name == data["codes_file"], "The loaded stimuli and decoder stimuli for online mismatch, check the config files."
             
             # Set the loaded codes with subset and optimal layout
             # Note that this means that while i_code still refers to indices 0 trough to n_keys
             # The actual code that's placed there might for example originally be indices 59, 12, 0...
             # You can find the actual index values of the original code file by printing/comparing the optimal_layout np array.
-            codes = codes[subset]
-            codes = codes[optimal_layout]
-            logger.info("Set the keyboard codes with the optimal layout + subset.")
+            codes = codes[subset, :]
+            codes = codes[layout, :]
+            logger.info("Set the keyboard codes with the optimal subset and layout.")
         else:
             logger.info("No layout.json file found.")
-
     else:
-        logger.debug("For training there's no optimal layout/subset yet.")
-    
+        logger.debug("For training there is not yet an optimal subset or layout.")
 
     key_to_sequence = dict()
     code_to_key = dict()
