@@ -507,12 +507,9 @@ class Speller(object):
         # Spelling
         text = self.get_text_field("text")
 
-        # check if autocomplete is enabled
-        AC_flag = self.cfg["speller"]["AC"]["enabled"]
-
         # update the autocomplete text field with the current text, update variable to hold the next autocompletion
         # result in case autocomplete key is pressed
-        if AC_flag:
+        if self.cfg["speller"]["AC"]["enabled"]:
             self.set_text_field(name="AC_text", text=self.next_ac)
             autocompleted_text = self.next_ac
 
@@ -545,7 +542,7 @@ class Speller(object):
         elif symbol == self.cfg["speller"]["key_backspace"]:
             # Perform a backspace
             text = text[:-1]
-        elif symbol == self.cfg["speller"]["key_autocomplete"] and AC_flag:
+        elif symbol == self.cfg["speller"]["key_autocomplete"] and self.cfg["speller"]["AC"]["enabled"]:
             # Ff AC enabled, update the text variable with the autocompleted text to be added to the text field, if not
             # enabled, treat ">" as text
             text = autocompleted_text
@@ -560,34 +557,32 @@ class Speller(object):
 
         # update the text field with the new text
         self.set_text_field(name="text", text=text)
+        logger.debug(f"Feedback: symbol={symbol} text={text}")
 
         # if the updated text is not empty, start the autocomplete process with the updated text (if enabled)
-        if len(text) >= 1 and AC_flag:
+        if len(text) >= 1 and self.cfg["speller"]["AC"]["enabled"]:
             self.start_AC()
         else:
             self.next_ac = text
 
-        logger.debug(f"Feedback: symbol={symbol} text={text}")
-
         # Feedback
         logger.info(f"Presenting feedback {prediction_key} ({prediction})")
-
         # if the prediction is in the second half of the key map, find its equivalent in the first half
         if not self.case_flag:
             prediction_key = self.all_keys[prediction_key]  # set a -> A, etc. for highlights
         self.highlights[prediction_key] = [-1]
-        
         self.run(
             sequences=self.highlights,
             duration=self.cfg["speller"]["timing"]["feedback_s"],
             start_marker=f'{self.cfg["speller"]["markers"]["feedback_start"]};label={prediction};key={prediction_key}',
             stop_marker=self.cfg["speller"]["markers"]["feedback_stop"],
         )    
-        
-        # if TTS flag is true and feedback is complete, speak the text
-        if self.tts_flag:
-            self.speak_text(text)
-            self.tts_flag = False  # reset the TTS flag for next decode event
+
+        if self.cfg["speller"]["TTS"]["enabled"]:
+            # if TTS flag is true and feedback is complete, speak the text
+            if self.tts_flag:
+                self.speak_text(text)
+                self.tts_flag = False  # reset the TTS flag for next decode event
 
         # remove the highlight from the selected key
         self.highlights[prediction_key] = [0]

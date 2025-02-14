@@ -69,13 +69,13 @@ iti_start = "start_iti"
 iti_stop = "stop_iti"
 
 [speller.TTS]
-enabled = false
+enabled = true
 rate = 225
 volume = 1.0
 voice_idx = 0
 
 [speller.AC]
-enabled = false
+enabled = true
 mode = "offline"
 
 [speller.AC_online]
