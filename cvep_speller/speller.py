@@ -12,11 +12,11 @@ from fire import Fire
 from psychopy import event, misc, monitors, visual
 from pylsl import StreamInfo, StreamOutlet
 import threading
-import pyttsx3
-import google.generativeai as genai
-import autocomplete
 import os
 import json
+import google.generativeai as genai
+import autocomplete
+import pyttsx3
 
 from cvep_speller.utils.logging import logger
 
@@ -33,7 +33,11 @@ KEY_MAPPING = {
     "bar": "|",
     "tilde": "~",
     "backslash": "\\",
+    "backspace": "<-",
+    "clear": "<<",
+    "complete": ">>",
 }
+
 
 class Speller(object):
     """
@@ -134,16 +138,21 @@ class Speller(object):
         self.decoder_sw = None
 
         # Set up variables for text to speech, autocompletion, and shifting keyboard layout
-        self.sample_idx = 0 # used to iterate through sample symbols, iterated in handle_decoding_event
-        #self.sample_symbols = ["shift","H","shift","e","l","l","o"," ","w","o","r","l","d", " ", "shift", "I", "shift", "a", "m"] # sample symbols for the speller to receive
+        self.sample_idx = 0  # used to iterate through sample symbols, iterated in handle_decoding_event
+        # self.sample_symbols = ["shift","H","shift","e","l","l","o"," ","w","o","r","l","d",
+        #                        " ", "shift", "I", "shift", "a", "m"]  # sample symbols for the speller to receive
         self.sample_symbols = []
-        self.all_keys = self.set_all_keys(cfg) # map all keys to their counterparts (A - > a, ! -> 1, etc.)
-        self.next_AC = "" # holds the next autocompletion result to be displayed
-        self.AC_engine = self.init_AC_engine()
-        self.TTS_engine = self.init_tts()
-        self.case_flag = not self.cfg["speller"]["keys"]["use_shift_keyboard"] # True for upper case, False for lower case, start in lower case if shifting is enabled
-        self.tts_flag = False # used to queue up text to speech
-    
+
+        self.all_keys = self.set_all_keys(cfg)  # map all keys to their counterparts (A - > a, ! -> 1, etc.)
+        self.case_flag = not self.cfg["speller"]["keys"]["use_shift_keyboard"]  # True=upper, False=lower, start lower
+
+        if self.cfg["speller"]["AC"]["enabled"]:
+            self.next_ac = ""  # holds the next autocompletion result to be displayed
+            self.ac_engine = self.init_ac_engine()
+
+        if self.cfg["speller"]["TTS"]["enabled"]:
+            self.tts_engine = self.init_tts()
+            self.tts_flag = False  # used to queue up text to speech
 
     def add_key(
         self,
@@ -186,7 +195,7 @@ class Speller(object):
                     autoLog=False,
                 )
             )
-        if images_lower == []:
+        if len(images_lower) == 0:
             self.keys_shift[name] = self.keys[name]
         else:
             self.keys_shift[name] = []
@@ -203,7 +212,8 @@ class Speller(object):
                     )
                 )
 
-        # Set autoDraw to True for first default key to keep app visible; check case_flag to determine which set of keys to display at the start
+        # Set autoDraw to True for first default key to keep app visible; check case_flag to determine which set of
+        # keys to display at the start
         if self.case_flag:  
             self.keys[name][0].setAutoDraw(True)
         else:
@@ -239,6 +249,8 @@ class Speller(object):
             The text color of the text field  specified as list of RGB values.
         alignment: str (default: "left")
             The alignment of the text in the text field.
+        bold: bool (default: False)
+            Whether the text is boldface.
         """
         assert (
             name not in self.text_fields
@@ -479,11 +491,12 @@ class Speller(object):
         # Decoding
         logger.info("Waiting for decoding")
 
-        prediction = self.last_selected_key_idx % len(self.key_map) # with less keys, it is possible for random value to be out of bounds so take idx % number of keys
+        # with fewer keys, it is possible for random value to be out of bounds so take idx % number of keys
+        prediction = self.last_selected_key_idx % len(self.key_map)
         
         # additionally, the key map only includes capitalized versions of the keys, so shift the prediction if necessary
         if self.case_flag:
-            prediction_key = self.key_map[prediction] # self.key_map[0] = tilde, for example
+            prediction_key = self.key_map[prediction]  # self.key_map[0] = tilde, for example
         else:
             prediction_key = self.all_keys[self.key_map[prediction]] 
 
@@ -497,38 +510,51 @@ class Speller(object):
         # check if autocomplete is enabled
         AC_flag = self.cfg["speller"]["AC"]["enabled"]
 
-        # update the autocomplete text field with the current text, update variable to hold the next autocompletion result in case autocomplete key is pressed
+        # update the autocomplete text field with the current text, update variable to hold the next autocompletion
+        # result in case autocomplete key is pressed
         if AC_flag:
-            self.set_text_field(name="AC_text", text=self.next_AC)
-            autocompleted_text = self.next_AC
+            self.set_text_field(name="AC_text", text=self.next_ac)
+            autocompleted_text = self.next_ac
 
         # if there is an available list of sample symbols, use them, otherwise use the random prediction
         if self.sample_idx < len(self.sample_symbols):
             symbol = self.sample_symbols[self.sample_idx]
-            if symbol in KEY_MAPPING.values(): # update the prediction key to the recognized key name if the symbol is a special character (i.e. / -> slash)
+            if symbol in KEY_MAPPING.values():  # update the prediction key to the recognized key name if the symbol is
+                # a special character (i.e. / -> slash)
                 prediction_key = list(KEY_MAPPING.keys())[list(KEY_MAPPING.values()).index(symbol)]
             elif symbol == " ":
                 prediction_key = "space"
             else:
                 prediction_key = symbol
-            self.sample_idx += 1 # increment the sample index to move to the next symbol for the next decode event
+            self.sample_idx += 1  # increment the sample index to move to the next symbol for the next decode event
         else:
             symbol = prediction_key
 
-        # if the symbol is a key in KEY_MAPPING, change it to a symbol to be added to the text field (i.e. "slash" -> "/")
+        # if the symbol is a key in KEY_MAPPING, change it to a symbol to be added to the text field
+        # (i.e. "slash" -> "/")
         if symbol in KEY_MAPPING:
             symbol = KEY_MAPPING[symbol]
-        if symbol == "<": 
-            text = text[:-1]
-        elif symbol == "speaker": # enable TTS flag to be spoken after feedback
-            self.tts_flag = True
-        # if AC enabled, update the text variable with the autocompleted text to be added to the text field, if not enabled, treat ">" as text
-        elif symbol == ">" and AC_flag: 
-            text = autocompleted_text
-        elif symbol == "space":
+
+        # Handle special keys
+        if symbol == self.cfg["speller"]["key_space"]:
+            # Add a whitespace
             text = text + " "
-        elif symbol == "shift": # update the shift flag to change the case of the keyboard for the next iteration
+        elif symbol == self.cfg["speller"]["key_clear"]:
+            # Clear the full sentence
+            text = ""
+        elif symbol == self.cfg["speller"]["key_backspace"]:
+            # Perform a backspace
+            text = text[:-1]
+        elif symbol == self.cfg["speller"]["key_autocomplete"] and AC_flag:
+            # Ff AC enabled, update the text variable with the autocompleted text to be added to the text field, if not
+            # enabled, treat ">" as text
+            text = autocompleted_text
+        elif symbol == self.cfg["speller"]["key_shift"]:
+            # Update the shift flag to change the case of the keyboard for the next iteration
             self.case_flag = not self.case_flag
+        elif symbol == self.cfg["speller"]["key_text2speech"]:
+            # Enable TTS flag to be spoken after feedback
+            self.tts_flag = True
         else:
             text += symbol
 
@@ -539,15 +565,16 @@ class Speller(object):
         if len(text) >= 1 and AC_flag:
             self.start_AC()
         else:
-            self.next_AC = text
+            self.next_ac = text
 
         logger.debug(f"Feedback: symbol={symbol} text={text}")
 
         # Feedback
         logger.info(f"Presenting feedback {prediction_key} ({prediction})")
 
-        if (not self.case_flag): # if the prediction is in the second half of the key map, find its equivalent in the first half
-            prediction_key = self.all_keys[prediction_key] # set a -> A, etc. for highlights
+        # if the prediction is in the second half of the key map, find its equivalent in the first half
+        if not self.case_flag:
+            prediction_key = self.all_keys[prediction_key]  # set a -> A, etc. for highlights
         self.highlights[prediction_key] = [-1]
         
         self.run(
@@ -560,7 +587,7 @@ class Speller(object):
         # if TTS flag is true and feedback is complete, speak the text
         if self.tts_flag:
             self.speak_text(text)
-            self.tts_flag = False # reset the TTS flag for next decode event
+            self.tts_flag = False  # reset the TTS flag for next decode event
 
         # remove the highlight from the selected key
         self.highlights[prediction_key] = [0]
@@ -578,8 +605,10 @@ class Speller(object):
                 self.highlights[key] = [0]
         self.highlights["stt"] = [0]
 
-    # map all keys to their counterparts (A - > a, ! -> 1, etc.)
-    def set_all_keys(self, cfg : dict) -> dict:
+    def set_all_keys(self, cfg: dict) -> dict:
+        """
+        map all keys to their counterparts (A - > a, ! -> 1, etc.)
+        """
         all_keys = {}
         for y in range(len(cfg["speller"]["keys"]["keys"])):
             for x in range(len(cfg["speller"]["keys"]["keys"][y])):
@@ -587,52 +616,62 @@ class Speller(object):
                 all_keys[cfg["speller"]["keys"]["keys_lower"][y][x]] = cfg["speller"]["keys"]["keys"][y][x]
         return all_keys
 
-    # return a pyttsx3 engine based on user's operating system, with the specified settings from config
     def init_tts(self) -> pyttsx3.init:
+        """
+        # return a pyttsx3 engine based on user's operating system, with the specified settings from config
+        """
         engine = pyttsx3.init()
-        voice_idx = self.cfg["speller"]["TTS"]["voice_idx"] # 0 male, 1 female, can install more in system settings
+        voice_idx = self.cfg["speller"]["TTS"]["voice_idx"]  # 0 male, 1 female, can install more in system settings
         engine.setProperty('voice', engine.getProperty('voices')[voice_idx].id)
-        engine.setProperty('rate', self.cfg["speller"]["TTS"]["rate"]) # integer value for words per minute
-        engine.setProperty('volume', self.cfg["speller"]["TTS"]["volume"]) # float value from 0 to 1
+        engine.setProperty('rate', self.cfg["speller"]["TTS"]["rate"])  # integer value for words per minute
+        engine.setProperty('volume', self.cfg["speller"]["TTS"]["volume"])  # float value from 0 to 1
         return engine
 
-    # use the initialized TTS engine to speak the text
-    def speak_text(self, text : str) -> None:  
+    def speak_text(self, text: str) -> None:
+        """
+        use the initialized TTS engine to speak the text
+        """
         try:
-            self.TTS_engine.say(text)
-            self.TTS_engine.runAndWait()
-            self.TTS_engine.stop()
+            self.tts_engine.say(text)
+            self.tts_engine.runAndWait()
+            self.tts_engine.stop()
         except Exception as e:
             print(f"TTS Error: {e}")
 
-    # return a generative AI model based on the specified settings from config
-    def init_AC_engine(self) -> genai.GenerativeModel:
+    def init_ac_engine(self) -> genai.GenerativeModel:
         """
-        models: list[str] - list of models to choose from:
-            "gemini-1.5-pro": larger model with more parameters, better performance but slower (1.5s per request), 2 Requests per Minute limit
-            "gemini-1.5-flash-8b", "gemini-1.5-flash": smaller models with less parameters, faster (~0.5-0.75s per request), 15 Requests per Minute limit
-        online_instructions: str - instructions for the model to follow, can be used to guide the model to generate specific content or avoid certain outputs
+        return a generative AI model based on the specified settings from config
         """
-        if self.cfg["speller"]["AC"]["enabled"]: # first, check if autocomplete is enabled in the config
+        # first, check if autocomplete is enabled in the config
+        if self.cfg["speller"]["AC"]["enabled"]:
+            """
+            models: list[str] - list of models to choose from:
+            "gemini-1.5-pro": larger model with more parameters, better performance but slower (1.5s per request), 2 
+                Requests per Minute limit
+            "gemini-1.5-flash-8b", "gemini-1.5-flash": smaller models with less parameters, faster (~0.5-0.75s per 
+                request), 15 Requests per Minute limit
+            """
             models = self.cfg["speller"]["AC_online"]["models"]
             genai.configure(api_key=self.cfg["speller"]["AC_online"]["api_key"])
             model_idx = self.cfg["speller"]["AC_online"]["model_idx"]
+            # online_instructions: str - instructions for the model to follow, can be used to guide the model to
+            # generate specific content or avoid certain outputs
             online_instructions = self.cfg["speller"]["AC_online"]["online_instructions"]
             model = genai.GenerativeModel(models[model_idx], system_instruction=online_instructions)
             return model
-        
-    
-    # use the generative AI model to generate the next word in the sentence
+
     def online_autocomplete(self, text: str) -> str:
         """
-        temperature: float - temperature parameter for the model, higher values cause more randomness in the output
-        output_length: int - maximum number of tokens in the output, longer outputs take longer to generate
-            current output_length is set to 20, or a maximum of around 10-15 words, though this is never reached
-        candidate_count: int - number of candidate outputs to generate, higher values may lead to better results but take longer
+        use the generative AI model to generate the next word in the sentence
         """
-        model = self.AC_engine
+        model = self.ac_engine
+        # temperature: float - temperature parameter for the model, higher values cause more randomness in the output
         temp = self.cfg["speller"]["AC_online"]["temperature"]
+        # output_length: int - maximum number of tokens in the output, longer outputs take longer to generate
+        # current output_length is set to 20, or a maximum of around 10-15 words, though this is never reached
         output_length = self.cfg["speller"]["AC_online"]["output_length"]
+        # candidate_count: int - number of candidate outputs to generate, higher values may lead to better results
+        # but take longer
         response = model.generate_content(
             text,
             generation_config=genai.types.GenerationConfig(
@@ -641,11 +680,15 @@ class Speller(object):
                 temperature=temp,
             ),
         )
-        return(response.text.strip())
-    
-    # uses autocomplete module, based on bi-gram concept; given some current text, the model predicts the next word based on the most common word that follows the current word
+        return response.text.strip()
+
     def offline_autocomplete(self, text: str) -> str:
-        if text[-1] == " ": # if the last character is a space, don't predict anything (wait for next character)
+        """
+        uses autocomplete module, based on bi-gram concept; given some current text, the model predicts the next word
+        based on the most common word that follows the current word
+        """
+        # if the last character is a space, don't predict anything (wait for next character)
+        if text[-1] == " ":
             return text
         autocomplete.load()
         words = text.split(" ")
@@ -660,9 +703,9 @@ class Speller(object):
         # try prediction, if no prediction is found, use 'the' as the previous word and try again
         result = autocomplete.predict(previous_word, current_word)  
         if not result:
-          result = autocomplete.predict("the", current_word)
-          if not result:
-            return text
+            result = autocomplete.predict("the", current_word)
+            if not result:
+                return text
 
         # if the current word is the only word in the text, capitalize the first letter of the prediction
         if len(words) == 1:
@@ -670,24 +713,28 @@ class Speller(object):
         else:
             return text[0:len(text) - len(current_word)] + result[0][0]
 
-    # start the autocomplete process in its own thread, either online or offline based on the mode specified in the config
-    def start_AC(self): 
+    def start_AC(self):
+        """
+        start the autocomplete process in its own thread, either online or offline based on the mode specified in the
+        config
+        """
         text = self.get_text_field("text") 
-        mode = self.cfg["speller"]["AC"]["mode"] # mode is either "online" or "offline"
+        mode = self.cfg["speller"]["AC"]["mode"]  # mode is either "online" or "offline"
 
         # create task based on mode, start task in a new thread, update next_AC with the result to be displayed
         if mode == "online":
             def task():
                 result = self.online_autocomplete(text)
-                self.next_AC = result
+                self.next_ac = result
         else:
             def task():
                 result = self.offline_autocomplete(text)
-                self.next_AC = result
+                self.next_ac = result
 
         # start the task in a new thread   
         thread = threading.Thread(target=task, daemon=True)
         thread.start()
+
 
 def setup_speller(cfg: dict) -> Speller:
 
@@ -748,25 +795,21 @@ def setup_speller(cfg: dict) -> Speller:
         ),
         pos=(x_pos, y_pos),
         background_color=cfg["speller"]["text_fields"]["background_color"],
+        text_color=(-1.0, -1.0, -1.0),
     )
 
     # using the positions of the text field with an offset, add a text field for the autocompletion results
     if cfg["speller"]["AC"]["enabled"]:
         text_box_height = int(cfg["speller"]["text_fields"]["height_dva"] * ppd)
         speller.add_text_field(
-        name="AC_text", 
-        text="", 
-        size=(
-            int(
-                cfg["speller"]["screen"]["resolution"][0]
-                - cfg["speller"]["stt"]["width_dva"] * ppd
-            ),
-            text_box_height,
-        ),
-        pos=(x_pos, y_pos - text_box_height),
-        background_color=cfg["speller"]["text_fields"]["background_color"],  
-        bold=True,
-    )
+            name="AC_text",
+            text="",
+            size=(int(cfg["speller"]["screen"]["resolution"][0] - cfg["speller"]["stt"]["width_dva"] * ppd),
+                  text_box_height),
+            pos=(x_pos, y_pos - text_box_height),
+            background_color=cfg["speller"]["text_fields"]["background_color"],
+            text_color=(-0.7, -0.7, -0.7),
+        )
 
     # Add text field at the bottom of the screen containing system messages
     x_pos = 0
@@ -787,11 +830,7 @@ def setup_speller(cfg: dict) -> Speller:
     )
 
     # Add keys
-    # check if shifting is enabled, if so use the new keys, otherwise use the previous keys
-    if cfg["speller"]["keys"]["use_shift_keyboard"]:
-        keys_from_cfg = cfg["speller"]["keys"]["keys"]
-    else:
-        keys_from_cfg = cfg["speller"]["keys"]["keys_previous"]
+    keys_from_cfg = cfg["speller"]["keys"]["keys"]
 
     for y in range(len(keys_from_cfg)):
         for x in range(len(keys_from_cfg[y])):
@@ -813,11 +852,9 @@ def setup_speller(cfg: dict) -> Speller:
                 - cfg["speller"]["text_fields"]["height_dva"] * ppd
             )
             if y == 0 or y == 1:
-                x_pos -= int(0.5 * cfg["speller"]["keys"]["width_dva"] * ppd)
-            if y == 3:
                 x_pos += int(0.25 * cfg["speller"]["keys"]["width_dva"] * ppd)
-            if y == 4:
-                x_pos -= int(0.25 * cfg["speller"]["keys"]["width_dva"] * ppd)
+            elif y == 3 or y == 4:
+                x_pos -= int(0.5 * cfg["speller"]["keys"]["width_dva"] * ppd)
             if keys_from_cfg[y][x] == "space":
                 images = [
                     Path(cfg["speller"]["images_dir"]) / f"{color}.png"
@@ -830,8 +867,10 @@ def setup_speller(cfg: dict) -> Speller:
                     / f'{keys_from_cfg[y][x]}_{color}.png'
                     for color in cfg["speller"]["keys"]["colors"]
                 ]
-                # if shifting is enabled, check if the key has a different shift key, if so, add the lowercase version of the key
-                if cfg["speller"]["keys"]["use_shift_keyboard"] and (keys_from_cfg[y][x]) != (cfg["speller"]["keys"]["keys_lower"][y][x]):
+                # if shifting is enabled, check if the key has a different shift key, if so, add the lowercase version
+                # of the key
+                if (cfg["speller"]["keys"]["use_shift_keyboard"] and
+                        (keys_from_cfg[y][x]) != (cfg["speller"]["keys"]["keys_lower"][y][x])):
                     # check if the key has a lower case version 
                     if (keys_from_cfg[y][x]).isalpha() and len(keys_from_cfg[y][x]) == 1: 
                         images_lower = [
@@ -839,13 +878,13 @@ def setup_speller(cfg: dict) -> Speller:
                             / f'{keys_from_cfg[y][x]}_lower_{color}.png'
                             for color in cfg["speller"]["keys"]["colors"]
                         ]
-                    else: # special symbols i.e. 1 -> !, 2 -> @, etc.
+                    else:  # special symbols i.e. 1 -> !, 2 -> @, etc.
                         images_lower = [
                             Path(cfg["speller"]["images_dir"])
                             / f'{cfg["speller"]["keys"]["keys_lower"][y][x]}_{color}.png'
                             for color in cfg["speller"]["keys"]["colors"]
                         ]
-                else: # keep upper and lowercase images the same
+                else:  # keep upper and lowercase images the same
                     images_lower = images
             speller.add_key(
                 name=keys_from_cfg[y][x],
@@ -863,7 +902,7 @@ def setup_speller(cfg: dict) -> Speller:
     return speller
 
 
-def create_key2seq_and_code2key(cfg: dict, phase:str) -> tuple[dict, dict]:
+def create_key2seq_and_code2key(cfg: dict, phase: str) -> tuple[dict, dict]:
 
     codes_file = Path(cfg["run"][phase]["codes_file"])
 
@@ -889,13 +928,15 @@ def create_key2seq_and_code2key(cfg: dict, phase:str) -> tuple[dict, dict]:
                 subset = np.array(data["subset"])
                 layout = np.array(data["layout"])
             
-            # Extra assertion check. The speller and decoder online/training codefiles should match.
-            assert codes_file.name == data["codes_file"], "The loaded stimuli and decoder stimuli for online mismatch, check the config files."
+            # Extra assertion check. The speller and decoder online/training code files should match.
+            assert codes_file.name == data["codes_file"], \
+                "The loaded stimuli and decoder stimuli for online mismatch, check the config files."
             
             # Set the loaded codes with subset and optimal layout
             # Note that this means that while i_code still refers to indices 0 trough to n_keys
             # The actual code that's placed there might for example originally be indices 59, 12, 0...
-            # You can find the actual index values of the original code file by printing/comparing the optimal_layout np array.
+            # You can find the actual index values of the original code file by printing/comparing the optimal_layout
+            # np array.
             codes = codes[subset, :]
             codes = codes[layout, :]
             logger.info("Set the keyboard codes with the optimal subset and layout.")
@@ -1001,7 +1042,7 @@ def run_speller_paradigm(
             speller.highlights[target_key] = [0]
 
         if phase == "online" and speller.cfg["speller"]["AC"]["enabled"]:
-            speller.set_text_field(name="AC_text", text=speller.next_AC)
+            speller.set_text_field(name="AC_text", text=speller.next_ac)
 
         # Trial
         logger.info("Starting stimulation")

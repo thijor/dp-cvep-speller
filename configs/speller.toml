@@ -4,10 +4,16 @@ codes_dir = "./cvep_speller/codes/"
 layout_file = "layout.json" # Just the filename because we load from codes_dir + layout_file
 presentation_rate_hz = 60
 quit_phrase = "!!"
+key_space = "space"
+key_clear = "<<"
+key_backspace = "<-"
+key_autocomplete = ">>"
+key_shift = "shift"
+key_text2speech = "speaker"
 
 [speller.screen]
 id = 1
-resolution = [ 1920, 1080,]
+resolution = [1920, 1080]
 width_cm = 53.0
 distance_cm = 60.0
 background_color = [ 0, 0, 0,]
@@ -30,10 +36,19 @@ width_dva = 3.0
 height_dva = 3.0
 space_dva = 0.5
 colors = [ "black", "white", "green", "blue",]
-use_shift_keyboard = false # if false: set number_of_keyboardkeys to 63, 52 if true in decoder.toml 
-keys_lower = [ [ "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="], [ "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "backslash"], [ "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "speaker"], ["shift", "z", "x", "c", "v", "b", "n", "m", "comma", ".", "slash"], [ "smaller", "space", "larger"] ]
-keys = [ [ "tilde", "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "=",], [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "bar",], [ "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "speaker",], ["shift", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question",], [ "smaller", "space", "larger",],]
-keys_previous = [ [ "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+",], [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=",], [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]",], [ "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar",], [ "tilde", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question", "slash",], [ "smaller", "space", "larger",],]
+use_shift_keyboard = true
+keys = [
+    [ "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "=", "backspace" ],  # 13
+    [ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}" ],  # 12
+    [ "shift", "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar"],  # 13
+    ["tilde", "Z", "X", "C", "V", "B", "N", "M", "smaller", "larger", "question" ],  # 11
+    [ "clear", "space",  "complete", "speaker" ] ]  # 4
+keys_lower = [
+    [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "backspace" ],  # 13
+    [ "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]" ],  # 12
+    ["shift", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "backslash" ],  # 13
+    ["`", "z", "x", "c", "v", "b", "n", "m", "comma", ".", "slash" ],  # 11
+    [ "clear", "space", "complete", "speaker"] ]  # 4
 
 [speller.text_fields]
 height_dva = 2.3
@@ -54,13 +69,14 @@ iti_start = "start_iti"
 iti_stop = "stop_iti"
 
 [speller.TTS]
+enabled = false
 rate = 225
 volume = 1.0
 voice_idx = 0
 
 [speller.AC]
 enabled = false
-mode = "online"
+mode = "offline"
 
 [speller.AC_online]
 models = ["gemini-1.5-pro", "gemini-1.5-flash-8b", "gemini-1.5-flash"]
