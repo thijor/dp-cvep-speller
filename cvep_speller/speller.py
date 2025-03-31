@@ -61,7 +61,7 @@ class Speller(object):
         The screen number where to present the keyboard when multiple screens are used.
     background_color: tuple[float, float, float] (default: (0., 0., 0.)
         The keyboard's background color specified as list of RGB values.
-    lsl_stream_name: str (default: "marker-stream")
+    marker_stream_name: str (default: "marker-stream")
         The name of the LSL stream to which markers of the keyboard are logged.
     quit_controls: list[str] (default: None)
         A list of keys that can be pressed to initiate quiting of the speller.
@@ -89,7 +89,7 @@ class Speller(object):
         cfg: dict,
         screen_id: int = 0,
         background_color: tuple[float, float, float] = (0.0, 0.0, 0.0),
-        lsl_stream_name: str = "marker-stream",
+        marker_stream_name: str = "marker-stream",
         quit_controls: list[str] = None,
         full_screen: bool = True,
     ) -> None:
@@ -123,12 +123,12 @@ class Speller(object):
 
         # Setup LSL stream
         info = StreamInfo(
-            name=lsl_stream_name,
+            name=marker_stream_name,
             type="Markers",
             channel_count=1,
             nominal_srate=0,
             channel_format="string",
-            source_id=lsl_stream_name,
+            source_id=marker_stream_name,
         )
         self.outlet = StreamOutlet(info)
 
@@ -272,8 +272,8 @@ class Speller(object):
         )
 
     def connect_to_decoder_lsl_stream(self) -> None:
-        name = self.cfg["run"]["online"]["decoder"]["lsl_stream_name"]
-        logger.info(f'Connecting to decoder stream "{name=}".')
+        name = self.cfg["streams"]["decoder_stream_name"]
+        logger.info(f'Connecting to decoder stream "{name}".')
         self.decoder_sw = StreamWatcher(name=name)
         self.decoder_sw.connect_to_stream()
 
@@ -742,7 +742,7 @@ def setup_speller(cfg: dict) -> Speller:
         screen_id=cfg["speller"]["screen"]["id"],
         full_screen=cfg["speller"]["screen"]["full_screen"],
         background_color=cfg["speller"]["screen"]["background_color"],
-        lsl_stream_name=cfg["run"]["lsl_stream_name"],
+        marker_stream_name=cfg["streams"]["marker_stream_name"],
         quit_controls=cfg["speller"]["controls"]["quit"],
         cfg=cfg,
     )
@@ -899,7 +899,7 @@ def setup_speller(cfg: dict) -> Speller:
 
 def create_key2seq_and_code2key(cfg: dict, phase: str) -> tuple[dict, dict]:
 
-    codes_file = Path(cfg["run"][phase]["codes_file"])
+    codes_file = Path(cfg[phase]["codes_file"])
 
     # Setup code sequences from the correct phase
     codes = np.load(

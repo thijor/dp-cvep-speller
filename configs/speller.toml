@@ -86,17 +86,17 @@ online_instructions = "<OBJECTIVE_AND_PERSONA>\nYou are an autocorrect and autoc
 temperature = 1.0
 output_length = 20
 
+[streams]
+marker_stream_name = "cvep-speller-stream"
+decoder_stream_name = "cvep-decoder-stream"
+
 [run]
 phase = "training"
-lsl_stream_name = "cvep-speller-stream"
 
-[run.training]
+[training]
 codes_file = "mgold_61_6521.npz"
 n_trials = 10
 
-[run.online]
+[online]
 codes_file = "mgold_61_6521.npz"
 n_trials = 999
-
-[run.online.decoder]
-lsl_stream_name = "cvep-decoder-stream"
