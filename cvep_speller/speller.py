@@ -913,20 +913,20 @@ def create_key2seq_and_code2key(cfg: dict, phase: str) -> tuple[dict, dict]:
         axis=1,
     )
 
-    # Optimal layout + subset:
-    if phase == "online":
-        # Fetch the subset+layout file location
-        optimal_layout_file = os.path.join(cfg["speller"]["codes_dir"], cfg["speller"]["layout_file"])
-        if os.path.isfile(optimal_layout_file):
-            with open(optimal_layout_file, 'r') as infile:
+    # Optimal layout and subset:
+    subset_layout_file = cfg["decoder"]["decoder_subset_layout_file"]
+    if phase == "online" and len(subset_layout_file) > 0:
+        # Fetch the subset and layout file location
+        if os.path.isfile(subset_layout_file):
+            with open(subset_layout_file, 'r') as infile:
                 data = json.load(infile)
                 subset = np.array(data["subset"])
                 layout = np.array(data["layout"])
-            
+
             # Extra assertion check. The speller and decoder online/training code files should match.
             assert codes_file.name == data["codes_file"], \
-                "The loaded stimuli and decoder stimuli for online mismatch, check the config files."
-            
+                "The stimuli of the speller and decoder are not the same, please check."
+
             # Set the loaded codes with subset and optimal layout
             # Note that this means that while i_code still refers to indices 0 trough to n_keys
             # The actual code that's placed there might for example originally be indices 59, 12, 0...
@@ -934,11 +934,11 @@ def create_key2seq_and_code2key(cfg: dict, phase: str) -> tuple[dict, dict]:
             # np array.
             codes = codes[subset, :]
             codes = codes[layout, :]
-            logger.info("Set the keyboard codes with the optimal subset and layout.")
+            logger.info("Stimulus subset and layout applied.")
         else:
-            logger.info("No layout.json file found.")
+            logger.info(f"Subset and layout file {subset_layout_file} not found.")
     else:
-        logger.debug("For training there is not yet an optimal subset or layout.")
+        logger.debug("No stimulus subset or layout applied.")
 
     key_to_sequence = dict()
     code_to_key = dict()

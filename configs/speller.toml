@@ -1,7 +1,6 @@
 [speller]
 images_dir = "./cvep_speller/images/"
 codes_dir = "./cvep_speller/codes/"
-layout_file = "layout.json" # Just the filename because we load from codes_dir + layout_file
 presentation_rate_hz = 60
 quit_phrase = "!!"
 key_space = "space"
@@ -86,12 +85,12 @@ online_instructions = "<OBJECTIVE_AND_PERSONA>\nYou are an autocorrect and autoc
 temperature = 1.0
 output_length = 20
 
+[decoder]
+decoder_subset_layout_file = ""
+
 [streams]
 marker_stream_name = "cvep-speller-stream"
 decoder_stream_name = "cvep-decoder-stream"
-
-[run]
-phase = "training"
 
 [training]
 codes_file = "mgold_61_6521.npz"
