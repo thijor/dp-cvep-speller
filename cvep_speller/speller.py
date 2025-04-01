@@ -1016,7 +1016,7 @@ def run_speller_paradigm(
     speller.set_text_field(name="messages", text="")
 
     # Loop trials
-    n_trials = cfg["run"][phase]["n_trials"]
+    n_trials = cfg[phase]["n_trials"]
     for i_trial in range(n_trials):
         logger.info(f"Initiating trial {1 + i_trial}/{n_trials}")
 
