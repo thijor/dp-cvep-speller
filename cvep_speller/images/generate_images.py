@@ -12,7 +12,7 @@ KEYS = [
 	"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "{", "}",
 	"A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar", ";", "'", "backslash",
 	"tilde", "`", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "slash", "smaller", "larger", "question",
-	"clear", "space", "complete"]
+	"clear", "space", "autocomplete"]
 KEY_COLORS = ["black", "white", "green", "blue"]
 KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
 	"slash": "/",
@@ -28,7 +28,7 @@ KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
 	"backslash": "\\",  # also needed for qwerty layout
 	"backspace": "<-",
 	"clear": "<<",
-	"complete": ">>",
+	"autocomplete": ">>",
 }
 
 # Create images with symbols

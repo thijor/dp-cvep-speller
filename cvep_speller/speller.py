@@ -35,7 +35,7 @@ KEY_MAPPING = {
     "backslash": "\\",
     "backspace": "<-",
     "clear": "<<",
-    "complete": ">>",
+    "autocomplete": ">>",
 }
 
 
@@ -144,15 +144,15 @@ class Speller(object):
         self.sample_symbols = []
 
         self.all_keys = self.set_all_keys(cfg)  # map all keys to their counterparts (A - > a, ! -> 1, etc.)
-        self.case_flag = not self.cfg["speller"]["keys"]["use_shift_keyboard"]  # True=upper, False=lower, start lower
+        self.case_flag = False  # True=upper, False=lower, start lower
 
-        if self.cfg["speller"]["AC"]["enabled"]:
-            self.next_ac = ""  # holds the next autocompletion result to be displayed
-            self.ac_engine = self.init_ac_engine()
+        if self.cfg["speller"]["autocomplete"]["enabled"]:
+            self.next_autocomplete = ""  # holds the next autocompletion result to be displayed
+            self.autocomplete_engine = self.init_autocomplete_engine()
 
-        if self.cfg["speller"]["TTS"]["enabled"]:
-            self.tts_engine = self.init_tts()
-            self.tts_flag = False  # used to queue up text to speech
+        if self.cfg["speller"]["text2speech"]["enabled"]:
+            self.text2speech_engine = self.init_text2speech()
+            self.text2speech_flag = False  # used to queue up text to speech
 
     def add_key(
         self,
@@ -509,9 +509,9 @@ class Speller(object):
 
         # update the autocomplete text field with the current text, update variable to hold the next autocompletion
         # result in case autocomplete key is pressed
-        if self.cfg["speller"]["AC"]["enabled"]:
-            self.set_text_field(name="AC_text", text=self.next_ac)
-            autocompleted_text = self.next_ac
+        if self.cfg["speller"]["autocomplete"]["enabled"]:
+            self.set_text_field(name="autocomplete_text", text=self.next_autocomplete)
+            autocompleted_text = self.next_autocomplete
 
         # if there is an available list of sample symbols, use them, otherwise use the random prediction
         if self.sample_idx < len(self.sample_symbols):
@@ -542,16 +542,16 @@ class Speller(object):
         elif symbol == self.cfg["speller"]["key_backspace"]:
             # Perform a backspace
             text = text[:-1]
-        elif symbol == self.cfg["speller"]["key_autocomplete"] and self.cfg["speller"]["AC"]["enabled"]:
-            # Ff AC enabled, update the text variable with the autocompleted text to be added to the text field, if not
-            # enabled, treat ">" as text
+        elif self.cfg["speller"]["autocomplete"]["enabled"] and symbol == self.cfg["speller"]["key_autocomplete"]:
+            # If autocomplete enabled, update the text variable with the autocompleted text to be added to the text
+            # field, if not enabled, treat symbol as text
             text = autocompleted_text
         elif symbol == self.cfg["speller"]["key_shift"]:
             # Update the shift flag to change the case of the keyboard for the next iteration
             self.case_flag = not self.case_flag
         elif symbol == self.cfg["speller"]["key_text2speech"]:
-            # Enable TTS flag to be spoken after feedback
-            self.tts_flag = True
+            # Enable text2speech flag to be spoken after feedback
+            self.text2speech_flag = True
         else:
             text += symbol
 
@@ -560,10 +560,10 @@ class Speller(object):
         logger.debug(f"Feedback: symbol={symbol} text={text}")
 
         # if the updated text is not empty, start the autocomplete process with the updated text (if enabled)
-        if len(text) >= 1 and self.cfg["speller"]["AC"]["enabled"]:
-            self.start_AC()
+        if len(text) >= 1 and self.cfg["speller"]["autocomplete"]["enabled"]:
+            self.start_autocomplete()
         else:
-            self.next_ac = text
+            self.next_autocomplete = text
 
         # Feedback
         logger.info(f"Presenting feedback {prediction_key} ({prediction})")
@@ -578,11 +578,11 @@ class Speller(object):
             stop_marker=self.cfg["speller"]["markers"]["feedback_stop"],
         )    
 
-        if self.cfg["speller"]["TTS"]["enabled"]:
-            # if TTS flag is true and feedback is complete, speak the text
-            if self.tts_flag:
+        if self.cfg["speller"]["text2speech"]["enabled"]:
+            # if text2speech flag is true and feedback is complete, speak the text
+            if self.text2speech_flag:
                 self.speak_text(text)
-                self.tts_flag = False  # reset the TTS flag for next decode event
+                self.text2speech_flag = False  # reset the text2speech flag for next decode event
 
         # remove the highlight from the selected key
         self.highlights[prediction_key] = [0]
@@ -590,55 +590,53 @@ class Speller(object):
     def init_highlights_with_zero(self) -> None:
         # Setup highlights
         self.highlights = dict()
-        if self.cfg["speller"]["keys"]["use_shift_keyboard"]:
-            keys_from_cfg = self.cfg["speller"]["keys"]["keys"]
-        else:
-            keys_from_cfg = self.cfg["speller"]["keys"]["keys_previous"]
+        keys_from_cfg = self.cfg["speller"]["keys"]["keys_upper"]
 
         for row in keys_from_cfg:
             for key in row:
                 self.highlights[key] = [0]
-        self.highlights["stt"] = [0]
+        if self.cfg["speller"]["stt"]["enabled"]:
+            self.highlights["stt"] = [0]
 
     def set_all_keys(self, cfg: dict) -> dict:
         """
         map all keys to their counterparts (A - > a, ! -> 1, etc.)
         """
         all_keys = {}
-        for y in range(len(cfg["speller"]["keys"]["keys"])):
-            for x in range(len(cfg["speller"]["keys"]["keys"][y])):
-                all_keys[cfg["speller"]["keys"]["keys"][y][x]] = cfg["speller"]["keys"]["keys_lower"][y][x]
-                all_keys[cfg["speller"]["keys"]["keys_lower"][y][x]] = cfg["speller"]["keys"]["keys"][y][x]
+        for y in range(len(cfg["speller"]["keys"]["keys_upper"])):
+            for x in range(len(cfg["speller"]["keys"]["keys_upper"][y])):
+                all_keys[cfg["speller"]["keys"]["keys_upper"][y][x]] = cfg["speller"]["keys"]["keys_lower"][y][x]
+                all_keys[cfg["speller"]["keys"]["keys_lower"][y][x]] = cfg["speller"]["keys"]["keys_upper"][y][x]
         return all_keys
 
-    def init_tts(self) -> pyttsx3.init:
+    def init_text2speech(self) -> pyttsx3.init:
         """
         # return a pyttsx3 engine based on user's operating system, with the specified settings from config
         """
         engine = pyttsx3.init()
-        voice_idx = self.cfg["speller"]["TTS"]["voice_idx"]  # 0 male, 1 female, can install more in system settings
+        voice_idx = self.cfg["speller"]["text2speech"]["voice_idx"]  # 0 male, 1 female, can install more in system
         engine.setProperty('voice', engine.getProperty('voices')[voice_idx].id)
-        engine.setProperty('rate', self.cfg["speller"]["TTS"]["rate"])  # integer value for words per minute
-        engine.setProperty('volume', self.cfg["speller"]["TTS"]["volume"])  # float value from 0 to 1
+        engine.setProperty('rate', self.cfg["speller"]["text2speech"]["rate"])  # integer value for words/minute
+        engine.setProperty('volume', self.cfg["speller"]["text2speech"]["volume"])  # float value from 0 to 1
         return engine
 
     def speak_text(self, text: str) -> None:
         """
-        use the initialized TTS engine to speak the text
+        use the initialized text2speech engine to speak the text
         """
         try:
-            self.tts_engine.say(text)
-            self.tts_engine.runAndWait()
-            self.tts_engine.stop()
+            self.text2speech_engine.say(text)
+            self.text2speech_engine.runAndWait()
+            self.text2speech_engine.stop()
         except Exception as e:
-            print(f"TTS Error: {e}")
+            print(f"text2speech Error: {e}")
 
-    def init_ac_engine(self) -> genai.GenerativeModel:
+    def init_autocomplete_engine(self) -> genai.GenerativeModel:
         """
         return a generative AI model based on the specified settings from config
         """
         # first, check if autocomplete is enabled in the config
-        if self.cfg["speller"]["AC"]["enabled"]:
+        if self.cfg["speller"]["autocomplete"]["enabled"]:
             """
             models: list[str] - list of models to choose from:
             "gemini-1.5-pro": larger model with more parameters, better performance but slower (1.5s per request), 2 
@@ -646,25 +644,25 @@ class Speller(object):
             "gemini-1.5-flash-8b", "gemini-1.5-flash": smaller models with less parameters, faster (~0.5-0.75s per 
                 request), 15 Requests per Minute limit
             """
-            models = self.cfg["speller"]["AC_online"]["models"]
-            genai.configure(api_key=self.cfg["speller"]["AC_online"]["api_key"])
-            model_idx = self.cfg["speller"]["AC_online"]["model_idx"]
-            # online_instructions: str - instructions for the model to follow, can be used to guide the model to
+            models = self.cfg["speller"]["autocomplete"]["online"]["models"]
+            genai.configure(api_key=self.cfg["speller"]["autocomplete"]["online"]["api_key"])
+            model_idx = self.cfg["speller"]["autocomplete"]["online"]["model_idx"]
+            # instructions: str - instructions for the model to follow, can be used to guide the model to
             # generate specific content or avoid certain outputs
-            online_instructions = self.cfg["speller"]["AC_online"]["online_instructions"]
-            model = genai.GenerativeModel(models[model_idx], system_instruction=online_instructions)
+            instructions = self.cfg["speller"]["autocomplete"]["online"]["instructions"]
+            model = genai.GenerativeModel(models[model_idx], system_instruction=instructions)
             return model
 
     def online_autocomplete(self, text: str) -> str:
         """
         use the generative AI model to generate the next word in the sentence
         """
-        model = self.ac_engine
+        model = self.autocomplete_engine
         # temperature: float - temperature parameter for the model, higher values cause more randomness in the output
-        temp = self.cfg["speller"]["AC_online"]["temperature"]
+        temp = self.cfg["speller"]["autocomplete"]["online"]["temperature"]
         # output_length: int - maximum number of tokens in the output, longer outputs take longer to generate
         # current output_length is set to 20, or a maximum of around 10-15 words, though this is never reached
-        output_length = self.cfg["speller"]["AC_online"]["output_length"]
+        output_length = self.cfg["speller"]["autocomplete"]["online"]["output_length"]
         # candidate_count: int - number of candidate outputs to generate, higher values may lead to better results
         # but take longer
         response = model.generate_content(
@@ -708,23 +706,23 @@ class Speller(object):
         else:
             return text[0:len(text) - len(current_word)] + result[0][0]
 
-    def start_AC(self):
+    def start_autocomplete(self):
         """
         start the autocomplete process in its own thread, either online or offline based on the mode specified in the
         config
         """
         text = self.get_text_field("text") 
-        mode = self.cfg["speller"]["AC"]["mode"]  # mode is either "online" or "offline"
+        mode = self.cfg["speller"]["autocomplete"]["mode"]  # mode is either "online" or "offline"
 
-        # create task based on mode, start task in a new thread, update next_AC with the result to be displayed
+        # create task based on mode, start task in a new thread, update next_autocomplete with the result to be shown
         if mode == "online":
             def task():
                 result = self.online_autocomplete(text)
-                self.next_ac = result
+                self.next_autocomplete = result
         else:
             def task():
                 result = self.offline_autocomplete(text)
-                self.next_ac = result
+                self.next_autocomplete = result
 
         # start the task in a new thread   
         thread = threading.Thread(target=task, daemon=True)
@@ -749,59 +747,58 @@ def setup_speller(cfg: dict) -> Speller:
     ppd = speller.get_pixels_per_degree()
 
     # Add stimulus timing tracker at left top of the screen
-    x_pos = int(
-        -cfg["speller"]["screen"]["resolution"][0] / 2
-        + cfg["speller"]["stt"]["width_dva"] / 2 * ppd
-    )
-    y_pos = int(
-        cfg["speller"]["screen"]["resolution"][1] / 2
-        - cfg["speller"]["stt"]["height_dva"] / 2 * ppd
-    )
-    speller.add_key(
-        name="stt",
-        images=[
-            Path(cfg["speller"]["images_dir"]) / f"{color}.png"
-            for color in cfg["speller"]["stt"]["colors"]
-        ],
-        images_lower=[],
-        size=(
-            int(cfg["speller"]["stt"]["width_dva"] * ppd),
-            int(cfg["speller"]["stt"]["height_dva"] * ppd),
-        ),
-        pos=(x_pos, y_pos),
-    )
+    if cfg["speller"]["stt"]["enabled"]:
+        x_pos = int(
+            -cfg["speller"]["screen"]["resolution"][0] / 2
+            + cfg["speller"]["stt"]["width_dva"] / 2 * ppd
+        )
+        y_pos = int(
+            cfg["speller"]["screen"]["resolution"][1] / 2
+            - cfg["speller"]["stt"]["height_dva"] / 2 * ppd
+        )
+        speller.add_key(
+            name="stt",
+            images=[
+                Path(cfg["speller"]["images_dir"]) / f"{color}.png"
+                for color in cfg["speller"]["stt"]["colors"]
+            ],
+            images_lower=[],
+            size=(
+                int(cfg["speller"]["stt"]["width_dva"] * ppd),
+                int(cfg["speller"]["stt"]["height_dva"] * ppd),
+            ),
+            pos=(x_pos, y_pos),
+        )
 
     # Add text field at the top of the screen containing spelled text
-    x_pos = int(cfg["speller"]["stt"]["width_dva"] * ppd / 2)
+    if cfg["speller"]["stt"]["enabled"]:
+        x_pos = int(cfg["speller"]["stt"]["width_dva"] * ppd / 2)
+        x_size = int(cfg["speller"]["screen"]["resolution"][0] - cfg["speller"]["stt"]["width_dva"] * ppd)
+    else:
+        x_pos = 0
+        x_size = int(cfg["speller"]["screen"]["resolution"][0])
     y_pos = int(
         cfg["speller"]["screen"]["resolution"][1] / 2
         - cfg["speller"]["text_fields"]["height_dva"] * ppd / 2
     )
+    y_size = int(cfg["speller"]["text_fields"]["height_dva"] * ppd)
     
     speller.add_text_field(
         name="text",
         text="",
-        size=(
-            int(
-                cfg["speller"]["screen"]["resolution"][0]
-                - cfg["speller"]["stt"]["width_dva"] * ppd
-            ),
-            int(cfg["speller"]["text_fields"]["height_dva"] * ppd),
-        ),
+        size=(x_size, y_size),
         pos=(x_pos, y_pos),
         background_color=cfg["speller"]["text_fields"]["background_color"],
         text_color=(-1.0, -1.0, -1.0),
     )
 
     # using the positions of the text field with an offset, add a text field for the autocompletion results
-    if cfg["speller"]["AC"]["enabled"]:
-        text_box_height = int(cfg["speller"]["text_fields"]["height_dva"] * ppd)
+    if cfg["speller"]["autocomplete"]["enabled"]:
         speller.add_text_field(
-            name="AC_text",
+            name="autocomplete_text",
             text="",
-            size=(int(cfg["speller"]["screen"]["resolution"][0] - cfg["speller"]["stt"]["width_dva"] * ppd),
-                  text_box_height),
-            pos=(x_pos, y_pos - text_box_height),
+            size=(x_size, y_size),
+            pos=(x_pos, y_pos - y_size),
             background_color=cfg["speller"]["text_fields"]["background_color"],
             text_color=(-0.7, -0.7, -0.7),
         )
@@ -825,8 +822,7 @@ def setup_speller(cfg: dict) -> Speller:
     )
 
     # Add keys
-    keys_from_cfg = cfg["speller"]["keys"]["keys"]
-
+    keys_from_cfg = cfg["speller"]["keys"]["keys_upper"]
     for y in range(len(keys_from_cfg)):
         for x in range(len(keys_from_cfg[y])):
             x_pos = int(
@@ -864,7 +860,7 @@ def setup_speller(cfg: dict) -> Speller:
                 ]
                 # if shifting is enabled, check if the key has a different shift key, if so, add the lowercase version
                 # of the key
-                if (cfg["speller"]["keys"]["use_shift_keyboard"] and
+                if (cfg["speller"]["keys"]["shift_enabled"] and
                         (keys_from_cfg[y][x]) != (cfg["speller"]["keys"]["keys_lower"][y][x])):
                     # check if the key has a lower case version 
                     if (keys_from_cfg[y][x]).isalpha() and len(keys_from_cfg[y][x]) == 1: 
@@ -943,20 +939,17 @@ def create_key2seq_and_code2key(cfg: dict, phase: str) -> tuple[dict, dict]:
     key_to_sequence = dict()
     code_to_key = dict()
     i_code = 0
-    # if shifting is enabled, use the new keys, otherwise use the previous keys
-    if cfg["speller"]["keys"]["use_shift_keyboard"]:
-        keys_from_cfg = cfg["speller"]["keys"]["keys"]
-    else:
-        keys_from_cfg = cfg["speller"]["keys"]["keys_previous"]
+    keys_from_cfg = cfg["speller"]["keys"]["keys_upper"]
     for row in keys_from_cfg:
         for key in row:
             key_to_sequence[key] = codes[i_code, :].tolist()
             code_to_key[i_code] = key
             i_code += 1
-    key_to_sequence["stt"] = [1] + [0] * int(
-        (1 + cfg["speller"]["timing"]["trial_s"])
-        * cfg["speller"]["screen"]["refresh_rate_hz"]
-    )
+    if cfg["speller"]["stt"]["enabled"]:
+        key_to_sequence["stt"] = [1] + [0] * int(
+            (1 + cfg["speller"]["timing"]["trial_s"])
+            * cfg["speller"]["screen"]["refresh_rate_hz"]
+        )
 
     return key_to_sequence, code_to_key
 
@@ -1036,8 +1029,8 @@ def run_speller_paradigm(
             )
             speller.highlights[target_key] = [0]
 
-        if phase == "online" and speller.cfg["speller"]["AC"]["enabled"]:
-            speller.set_text_field(name="AC_text", text=speller.next_ac)
+        if phase == "online" and speller.cfg["speller"]["autocomplete"]["enabled"]:
+            speller.set_text_field(name="autocomplete_text", text=speller.next_autocomplete)
 
         # Trial
         logger.info("Starting stimulation")
@@ -1099,7 +1092,6 @@ def cli_run(
         The path to the configuration file containing session specific hyperparameters for the speller setup.
     log_level : int (default: 30)
         The logging level to use.
-
     """
 
     # activate the console logging if started via CLI
