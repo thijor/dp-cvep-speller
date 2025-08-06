@@ -4,21 +4,21 @@ import numpy as np
 WIDTH = 150
 HEIGHT = 150
 
-PATCH_HEIGHT = 30
-PATCH_WIDTH = 30
-N_PATCHES = 35
+PATCH_HEIGHT = 20
+PATCH_WIDTH = 20
+N_PATCHES = 75
 
 TEXT_COLOR = (0, 0, 0)
 FONT_SIZE = 30
 GRAY_COLOR = (127, 127, 127)
 
 KEYS = [
-    "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+",  # 12
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=",  # 12
-    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]",  # 12
-    "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar",  # 12
-    "tilde", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "question", "slash",  # 12
-    "smaller", "space", "larger"]  # 3
+    "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+", "backspace",
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=",
+    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "{", "}",
+    "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar", ";", "'", "backslash",
+    "tilde", "`", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "slash", "smaller", "larger", "question",
+    "clear", "space", "autocomplete"]
 KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
     "slash": "/",
     "comma": ",",
@@ -30,10 +30,14 @@ KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
     "larger": ">",
     "bar": "|",
     "tilde": "~",
+    "backslash": "\\",  # also needed for qwerty layout
+    "backspace": "<-",
+    "clear": "<<",
+    "autocomplete": ">>",
 }
 
 
-def generate_gabor_patch(size=(60, 60), theta=np.pi / 2, gamma=0.6, lamda=8, phi=0.0, sigma=4):
+def generate_gabor_patch(size=(60, 60), theta=np.pi / 2, gamma=0.6, lamda=5, phi=0.0, sigma=2):
     x, y = np.meshgrid(
         np.linspace(-size[1] // 2, size[1] // 2, size[1]),
         np.linspace(-size[0] // 2, size[0] // 2, size[0]))
