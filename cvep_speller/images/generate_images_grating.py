@@ -1,6 +1,8 @@
 from PIL import Image, ImageDraw
 import numpy as np
 
+np.random.seed(2)
+
 WIDTH = 150
 HEIGHT = 150
 
@@ -16,10 +18,12 @@ KEYS = [
     "!", "@", "#", "$", "%", "^", "&", "asterisk", "(", ")", "_", "+", "backspace",
     "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=",
     "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "{", "}",
-    "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar", ";", "'", "backslash",
+    "shift", "A", "S", "D", "F", "G", "H", "J", "K", "L", "colon", "quote", "bar", ";", "'", "backslash",
     "tilde", "`", "Z", "X", "C", "V", "B", "N", "M", "comma", ".", "slash", "smaller", "larger", "question",
-    "clear", "space", "autocomplete"]
-KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
+    "clear", "space", "autocomplete", "speaker"]
+    
+# Windows does not allow / , : * ? " < > | ~ in file names
+KEY_MAPPING = {
     "slash": "/",
     "comma": ",",
     "colon": ":",
@@ -30,10 +34,12 @@ KEY_MAPPING = {  # Windows does not allow / , : * ? " < > | ~ in file names
     "larger": ">",
     "bar": "|",
     "tilde": "~",
-    "backslash": "\\",  # also needed for qwerty layout
+    "backslash": "\\",
     "backspace": "<-",
     "clear": "<<",
     "autocomplete": ">>",
+    "shift": "sh",
+    "speaker": "sp",
 }
 
 
@@ -49,7 +55,6 @@ def generate_gabor_patch(size=(60, 60), theta=np.pi / 2, gamma=0.6, lamda=5, phi
     return gabor
 
 
-# Create image with gabor patches
 grating_image = np.zeros(shape=(WIDTH, HEIGHT), dtype="float32")
 for i in range(N_PATCHES):
     patch = generate_gabor_patch(size=(PATCH_HEIGHT, PATCH_WIDTH), theta=np.random.rand() * np.pi)
@@ -63,14 +68,15 @@ grating_image *= 127
 grating_image += 127
 grating_image = np.clip(grating_image, a_min=0, a_max=255)
 
-# Create images with symbols
 for key in KEYS:
     if key == "space":
-
+        
+        # No symbol gray
         img = Image.new(mode="RGB", size=(WIDTH, HEIGHT), color=GRAY_COLOR)
         img_draw = ImageDraw.Draw(img)
         img.save(f"gray.png")
 
+        # No symbol grating
         img = Image.fromarray(np.repeat(grating_image[:, :, np.newaxis], repeats=3, axis=2).astype("uint8"))
         img_draw = ImageDraw.Draw(img)
         img.save(f"grating.png")
@@ -81,6 +87,7 @@ for key in KEYS:
         else:
             symbol = key
 
+        # Symbol gray uppercase
         img = Image.new(mode="RGB", size=(WIDTH, HEIGHT), color=GRAY_COLOR)
         img_draw = ImageDraw.Draw(img)
         _, _, text_width, text_height = img_draw.textbbox(xy=(0, 0), text=symbol, font_size=FONT_SIZE)
@@ -89,7 +96,25 @@ for key in KEYS:
         img_draw.text(xy=(x_pos, y_pos), text=symbol, fill=TEXT_COLOR, font_size=FONT_SIZE)
         img.save(f"{key}_gray.png")
 
+        # Symbol grating uppercase
         img = Image.fromarray(np.repeat(grating_image[:, :, np.newaxis], repeats=3, axis=2).astype("uint8"))
         img_draw = ImageDraw.Draw(img)
         img_draw.text(xy=(x_pos, y_pos), text=symbol, fill=TEXT_COLOR, font_size=FONT_SIZE)
         img.save(f"{key}_grating.png")
+        
+        if key.isalpha() and len(key) == 1:
+        
+            # Symbol gray uppercase
+            img = Image.new(mode="RGB", size=(WIDTH, HEIGHT), color=GRAY_COLOR)
+            img_draw = ImageDraw.Draw(img)
+            _, _, text_width, text_height = img_draw.textbbox(xy=(0, 0), text=symbol.lower(), font_size=FONT_SIZE)
+            x_pos = (WIDTH - text_width) / 2
+            y_pos = (HEIGHT - text_height) / 2
+            img_draw.text(xy=(x_pos, y_pos), text=symbol, fill=TEXT_COLOR, font_size=FONT_SIZE)
+            img.save(f"{key}_lower_gray.png")
+
+            # Symbol grating uppercase
+            img = Image.fromarray(np.repeat(grating_image[:, :, np.newaxis], repeats=3, axis=2).astype("uint8"))
+            img_draw = ImageDraw.Draw(img)
+            img_draw.text(xy=(x_pos, y_pos), text=symbol, fill=TEXT_COLOR, font_size=FONT_SIZE)
+            img.save(f"{key}_lower_grating.png")
