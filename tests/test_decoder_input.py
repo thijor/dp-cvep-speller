@@ -41,7 +41,6 @@ def provide_lsl_stream(stop_event: threading.Event, srate: float = 5):
         dt = time.time_ns() - tstart
         req_samples = int((dt / 1e9) * srate) - nsent
         if req_samples > 0:
-
             # logger.debug(f"Sending {req_samples=} samples")
             # a decoding signal
             if time.time() - t_last_decode > 1.0:
@@ -61,7 +60,6 @@ def provide_lsl_stream(stop_event: threading.Event, srate: float = 5):
 
 @pytest.fixture(scope="session")  # only create once for all tests
 def spawn_lsl_data_stream() -> threading.Event:
-
     stop_event = threading.Event()
     stop_event.clear()
     th = threading.Thread(target=provide_lsl_stream, args=(stop_event,))
@@ -75,7 +73,6 @@ def spawn_lsl_data_stream() -> threading.Event:
 
 
 def test_decoder_selection(spawn_lsl_data_stream):
-
     # Assert that the LSL stream is up and running
     n_tries = 50
     sw = StreamWatcher(CFG["run"]["online"]["decoder_lsl_stream_name"])

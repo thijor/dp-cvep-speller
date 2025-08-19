@@ -2,9 +2,9 @@ import numpy as np
 import pyntbci
 
 # Shifted m-sequence
-code = pyntbci.stimulus.make_m_sequence(
-    poly=[1, 0, 0, 0, 0, 1], base=2, seed=6 * [1]
-)[0, :]
+code = pyntbci.stimulus.make_m_sequence(poly=[1, 0, 0, 0, 0, 1], base=2, seed=6 * [1])[
+    0, :
+]
 codes = np.zeros((code.size, code.size), dtype="uint8")
 for i in range(code.size):
     codes[i, :] = np.roll(code, i)
