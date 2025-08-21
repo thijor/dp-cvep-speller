@@ -1,12 +1,12 @@
+autocomplete==0.0.104
 dareplane_utils>=0.0.9
 fire>=0.7.0
+google-generativeai==0.8.3
 numpy>=1.26.4
 Pillow>=10.4.0
 psychopy>=2024.2.1
 pylsl>=1.16.2
 pyntbci>=1.6.0
+pyttsx3==2.98
 toml>=0.10.2
 ujson>=5.7.0
-autocomplete==0.0.104
-pyttsx3==2.98
-google-generativeai==0.8.3
