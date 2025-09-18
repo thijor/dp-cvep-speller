@@ -1,22 +1,22 @@
+import json
+import os
 import random
 import sys
+import threading
 import time
 from pathlib import Path
 
+import autocomplete
+import google.generativeai as genai
 import numpy as np
 import psychopy
+import pyttsx3
 import toml
 from dareplane_utils.logging.logger import get_logger
 from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
 from fire import Fire
 from psychopy import event, misc, monitors, visual
 from pylsl import StreamInfo, StreamOutlet
-import threading
-import os
-import json
-import google.generativeai as genai
-import autocomplete
-import pyttsx3
 
 from cvep_speller.utils.logging import logger
 
@@ -143,11 +143,15 @@ class Speller(object):
         #                        " ", "shift", "I", "shift", "a", "m"]  # sample symbols for the speller to receive
         self.sample_symbols = []
 
-        self.all_keys = self.set_all_keys(cfg)  # map all keys to their counterparts (A - > a, ! -> 1, etc.)
+        self.all_keys = self.set_all_keys(
+            cfg
+        )  # map all keys to their counterparts (A - > a, ! -> 1, etc.)
         self.case_flag = False  # True=upper, False=lower, start lower
 
         if self.cfg["speller"]["autocomplete"]["enabled"]:
-            self.next_autocomplete = ""  # holds the next autocompletion result to be displayed
+            self.next_autocomplete = (
+                ""  # holds the next autocompletion result to be displayed
+            )
             self.autocomplete_engine = self.init_autocomplete_engine()
 
         if self.cfg["speller"]["text2speech"]["enabled"]:
@@ -158,7 +162,7 @@ class Speller(object):
         self,
         name: str,
         images: list,
-        images_lower: list, 
+        images_lower: list,
         size: tuple[int, int],
         pos: tuple[int, int],
     ) -> None:
@@ -214,7 +218,7 @@ class Speller(object):
 
         # Set autoDraw to True for first default key to keep app visible; check case_flag to determine which set of
         # keys to display at the start
-        if self.case_flag:  
+        if self.case_flag:
             self.keys[name][0].setAutoDraw(True)
         else:
             self.keys_shift[name][0].setAutoDraw(True)
@@ -252,9 +256,9 @@ class Speller(object):
         bold: bool (default: False)
             Whether the text is boldface.
         """
-        assert (
-            name not in self.text_fields
-        ), "Adding a text field with a name that already exists!"
+        assert name not in self.text_fields, (
+            "Adding a text field with a name that already exists!"
+        )
         self.text_fields[name] = visual.TextBox2(
             win=self.window,
             name=name,
@@ -307,9 +311,9 @@ class Speller(object):
         text: str
             The text of the text field.
         """
-        assert (
-            name in self.text_fields
-        ), "Getting text of a text field with a name that does not exists!"
+        assert name in self.text_fields, (
+            "Getting text of a text field with a name that does not exists!"
+        )
         return self.text_fields[name].text
 
     def set_text_field(
@@ -327,9 +331,9 @@ class Speller(object):
         text: str
             The text of the text field.
         """
-        assert (
-            name in self.text_fields
-        ), "Setting text of a text field with a name that does not exists!"
+        assert name in self.text_fields, (
+            "Setting text of a text field with a name that does not exists!"
+        )
         self.text_fields[name].setText(text)
         self.window.flip()
 
@@ -464,7 +468,7 @@ class Speller(object):
 
         if self.decoder_sw.n_new != 0:
             prediction = self.decoder_sw.unfold_buffer()[
-                -self.decoder_sw.n_new:
+                -self.decoder_sw.n_new :
             ].flatten()
 
             logger.debug(f"Received: prediction={prediction}")
@@ -493,12 +497,14 @@ class Speller(object):
 
         # with fewer keys, it is possible for random value to be out of bounds so take idx % number of keys
         prediction = self.last_selected_key_idx % len(self.key_map)
-        
+
         # additionally, the key map only includes capitalized versions of the keys, so shift the prediction if necessary
         if self.case_flag:
-            prediction_key = self.key_map[prediction]  # self.key_map[0] = tilde, for example
+            prediction_key = self.key_map[
+                prediction
+            ]  # self.key_map[0] = tilde, for example
         else:
-            prediction_key = self.all_keys[self.key_map[prediction]] 
+            prediction_key = self.all_keys[self.key_map[prediction]]
 
         logger.debug(
             f"Decoding: prediction={prediction} prediction_key={prediction_key}"
@@ -516,9 +522,13 @@ class Speller(object):
         # if there is an available list of sample symbols, use them, otherwise use the random prediction
         if self.sample_idx < len(self.sample_symbols):
             symbol = self.sample_symbols[self.sample_idx]
-            if symbol in KEY_MAPPING.values():  # update the prediction key to the recognized key name if the symbol is
+            if (
+                symbol in KEY_MAPPING.values()
+            ):  # update the prediction key to the recognized key name if the symbol is
                 # a special character (i.e. / -> slash)
-                prediction_key = list(KEY_MAPPING.keys())[list(KEY_MAPPING.values()).index(symbol)]
+                prediction_key = list(KEY_MAPPING.keys())[
+                    list(KEY_MAPPING.values()).index(symbol)
+                ]
             elif symbol == " ":
                 prediction_key = "space"
             else:
@@ -542,7 +552,10 @@ class Speller(object):
         elif symbol == self.cfg["speller"]["key_backspace"]:
             # Perform a backspace
             text = text[:-1]
-        elif self.cfg["speller"]["autocomplete"]["enabled"] and symbol == self.cfg["speller"]["key_autocomplete"]:
+        elif (
+            self.cfg["speller"]["autocomplete"]["enabled"]
+            and symbol == self.cfg["speller"]["key_autocomplete"]
+        ):
             # If autocomplete enabled, update the text variable with the autocompleted text to be added to the text
             # field, if not enabled, treat symbol as text
             text = autocompleted_text
@@ -569,20 +582,24 @@ class Speller(object):
         logger.info(f"Presenting feedback {prediction_key} ({prediction})")
         # if the prediction is in the second half of the key map, find its equivalent in the first half
         if not self.case_flag:
-            prediction_key = self.all_keys[prediction_key]  # set a -> A, etc. for highlights
+            prediction_key = self.all_keys[
+                prediction_key
+            ]  # set a -> A, etc. for highlights
         self.highlights[prediction_key] = [-1]
         self.run(
             sequences=self.highlights,
             duration=self.cfg["speller"]["timing"]["feedback_s"],
-            start_marker=f'{self.cfg["speller"]["markers"]["feedback_start"]};label={prediction};key={prediction_key}',
+            start_marker=f"{self.cfg['speller']['markers']['feedback_start']};label={prediction};key={prediction_key}",
             stop_marker=self.cfg["speller"]["markers"]["feedback_stop"],
-        )    
+        )
 
         if self.cfg["speller"]["text2speech"]["enabled"]:
             # if text2speech flag is true and feedback is complete, speak the text
             if self.text2speech_flag:
                 self.speak_text(text)
-                self.text2speech_flag = False  # reset the text2speech flag for next decode event
+                self.text2speech_flag = (
+                    False  # reset the text2speech flag for next decode event
+                )
 
         # remove the highlight from the selected key
         self.highlights[prediction_key] = [0]
@@ -605,8 +622,12 @@ class Speller(object):
         all_keys = {}
         for y in range(len(cfg["speller"]["keys"]["keys_upper"])):
             for x in range(len(cfg["speller"]["keys"]["keys_upper"][y])):
-                all_keys[cfg["speller"]["keys"]["keys_upper"][y][x]] = cfg["speller"]["keys"]["keys_lower"][y][x]
-                all_keys[cfg["speller"]["keys"]["keys_lower"][y][x]] = cfg["speller"]["keys"]["keys_upper"][y][x]
+                all_keys[cfg["speller"]["keys"]["keys_upper"][y][x]] = cfg["speller"][
+                    "keys"
+                ]["keys_lower"][y][x]
+                all_keys[cfg["speller"]["keys"]["keys_lower"][y][x]] = cfg["speller"][
+                    "keys"
+                ]["keys_upper"][y][x]
         return all_keys
 
     def init_text2speech(self) -> pyttsx3.init:
@@ -614,10 +635,16 @@ class Speller(object):
         # return a pyttsx3 engine based on user's operating system, with the specified settings from config
         """
         engine = pyttsx3.init()
-        voice_idx = self.cfg["speller"]["text2speech"]["voice_idx"]  # 0 male, 1 female, can install more in system
-        engine.setProperty('voice', engine.getProperty('voices')[voice_idx].id)
-        engine.setProperty('rate', self.cfg["speller"]["text2speech"]["rate"])  # integer value for words/minute
-        engine.setProperty('volume', self.cfg["speller"]["text2speech"]["volume"])  # float value from 0 to 1
+        voice_idx = self.cfg["speller"]["text2speech"][
+            "voice_idx"
+        ]  # 0 male, 1 female, can install more in system
+        engine.setProperty("voice", engine.getProperty("voices")[voice_idx].id)
+        engine.setProperty(
+            "rate", self.cfg["speller"]["text2speech"]["rate"]
+        )  # integer value for words/minute
+        engine.setProperty(
+            "volume", self.cfg["speller"]["text2speech"]["volume"]
+        )  # float value from 0 to 1
         return engine
 
     def speak_text(self, text: str) -> None:
@@ -645,12 +672,16 @@ class Speller(object):
                 request), 15 Requests per Minute limit
             """
             models = self.cfg["speller"]["autocomplete"]["online"]["models"]
-            genai.configure(api_key=self.cfg["speller"]["autocomplete"]["online"]["api_key"])
+            genai.configure(
+                api_key=self.cfg["speller"]["autocomplete"]["online"]["api_key"]
+            )
             model_idx = self.cfg["speller"]["autocomplete"]["online"]["model_idx"]
             # instructions: str - instructions for the model to follow, can be used to guide the model to
             # generate specific content or avoid certain outputs
             instructions = self.cfg["speller"]["autocomplete"]["online"]["instructions"]
-            model = genai.GenerativeModel(models[model_idx], system_instruction=instructions)
+            model = genai.GenerativeModel(
+                models[model_idx], system_instruction=instructions
+            )
             return model
 
     def online_autocomplete(self, text: str) -> str:
@@ -694,7 +725,7 @@ class Speller(object):
             previous_word = "the"
 
         # try prediction, if no prediction is found, use 'the' as the previous word and try again
-        result = autocomplete.predict(previous_word, current_word)  
+        result = autocomplete.predict(previous_word, current_word)
         if not result:
             result = autocomplete.predict("the", current_word)
             if not result:
@@ -704,33 +735,36 @@ class Speller(object):
         if len(words) == 1:
             return (result[0][0]).capitalize()
         else:
-            return text[0:len(text) - len(current_word)] + result[0][0]
+            return text[0 : len(text) - len(current_word)] + result[0][0]
 
     def start_autocomplete(self):
         """
         start the autocomplete process in its own thread, either online or offline based on the mode specified in the
         config
         """
-        text = self.get_text_field("text") 
-        mode = self.cfg["speller"]["autocomplete"]["mode"]  # mode is either "online" or "offline"
+        text = self.get_text_field("text")
+        mode = self.cfg["speller"]["autocomplete"][
+            "mode"
+        ]  # mode is either "online" or "offline"
 
         # create task based on mode, start task in a new thread, update next_autocomplete with the result to be shown
         if mode == "online":
+
             def task():
                 result = self.online_autocomplete(text)
                 self.next_autocomplete = result
         else:
+
             def task():
                 result = self.offline_autocomplete(text)
                 self.next_autocomplete = result
 
-        # start the task in a new thread   
+        # start the task in a new thread
         thread = threading.Thread(target=task, daemon=True)
         thread.start()
 
 
 def setup_speller(cfg: dict) -> Speller:
-
     # Setup speller
     speller = Speller(
         screen_resolution=cfg["speller"]["screen"]["resolution"],
@@ -773,7 +807,10 @@ def setup_speller(cfg: dict) -> Speller:
     # Add text field at the top of the screen containing spelled text
     if cfg["speller"]["stt"]["enabled"]:
         x_pos = int(cfg["speller"]["stt"]["width_dva"] * ppd / 2)
-        x_size = int(cfg["speller"]["screen"]["resolution"][0] - cfg["speller"]["stt"]["width_dva"] * ppd)
+        x_size = int(
+            cfg["speller"]["screen"]["resolution"][0]
+            - cfg["speller"]["stt"]["width_dva"] * ppd
+        )
     else:
         x_pos = 0
         x_size = int(cfg["speller"]["screen"]["resolution"][0])
@@ -782,7 +819,7 @@ def setup_speller(cfg: dict) -> Speller:
         - cfg["speller"]["text_fields"]["height_dva"] * ppd / 2
     )
     y_size = int(cfg["speller"]["text_fields"]["height_dva"] * ppd)
-    
+
     speller.add_text_field(
         name="text",
         text="",
@@ -855,24 +892,30 @@ def setup_speller(cfg: dict) -> Speller:
             else:
                 images = [
                     Path(cfg["speller"]["images_dir"])
-                    / f'{keys_from_cfg[y][x]}_{color}.png'
+                    / f"{keys_from_cfg[y][x]}_{color}.png"
                     for color in cfg["speller"]["keys"]["colors"]
                 ]
                 # if shifting is enabled, check if the key has a different shift key, if so, add the lowercase version
                 # of the key
-                if (cfg["speller"]["keys"]["shift_enabled"] and
-                        (keys_from_cfg[y][x]) != (cfg["speller"]["keys"]["keys_lower"][y][x])):
-                    # check if the key has a lower case version 
-                    if (keys_from_cfg[y][x]).isalpha() and len(keys_from_cfg[y][x]) == 1: 
+                if (
+                    cfg["speller"]["keys"]["shift_enabled"]
+                    and (keys_from_cfg[y][x])
+                    != (cfg["speller"]["keys"]["keys_lower"][y][x])
+                ):
+                    # check if the key has a lower case version
+                    if (
+                        (keys_from_cfg[y][x]).isalpha()
+                        and len(keys_from_cfg[y][x]) == 1
+                    ):
                         images_lower = [
                             Path(cfg["speller"]["images_dir"])
-                            / f'{keys_from_cfg[y][x]}_lower_{color}.png'
+                            / f"{keys_from_cfg[y][x]}_lower_{color}.png"
                             for color in cfg["speller"]["keys"]["colors"]
                         ]
                     else:  # special symbols i.e. 1 -> !, 2 -> @, etc.
                         images_lower = [
                             Path(cfg["speller"]["images_dir"])
-                            / f'{cfg["speller"]["keys"]["keys_lower"][y][x]}_{color}.png'
+                            / f"{cfg['speller']['keys']['keys_lower'][y][x]}_{color}.png"
                             for color in cfg["speller"]["keys"]["colors"]
                         ]
                 else:  # keep upper and lowercase images the same
@@ -894,12 +937,10 @@ def setup_speller(cfg: dict) -> Speller:
 
 
 def create_key2seq_and_code2key(cfg: dict, phase: str) -> tuple[dict, dict]:
-
     codes_file = Path(cfg[phase]["codes_file"])
 
     # Setup code sequences from the correct phase
-    codes = np.load(
-        Path(cfg["speller"]["codes_dir"]) / codes_file)["codes"]
+    codes = np.load(Path(cfg["speller"]["codes_dir"]) / codes_file)["codes"]
     codes = np.repeat(
         codes,
         int(
@@ -914,14 +955,15 @@ def create_key2seq_and_code2key(cfg: dict, phase: str) -> tuple[dict, dict]:
     if phase == "online" and len(subset_layout_file) > 0:
         # Fetch the subset and layout file location
         if os.path.isfile(subset_layout_file):
-            with open(subset_layout_file, 'r') as infile:
+            with open(subset_layout_file, "r") as infile:
                 data = json.load(infile)
                 subset = np.array(data["subset"])
                 layout = np.array(data["layout"])
 
             # Extra assertion check. The speller and decoder online/training code files should match.
-            assert codes_file.name == data["codes_file"], \
+            assert codes_file.name == data["codes_file"], (
                 "The stimuli of the speller and decoder are not the same, please check."
+            )
 
             # Set the loaded codes with subset and optimal layout
             # Note that this means that while i_code still refers to indices 0 trough to n_keys
@@ -998,7 +1040,9 @@ def run_speller_paradigm(
     python_version = (
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
-    speller.log(marker=f"version;python={python_version};psychopy={psychopy.__version__}")
+    speller.log(
+        marker=f"version;python={python_version};psychopy={psychopy.__version__}"
+    )
     speller.log(marker=f"setup;codes={key_to_sequence};labels={code_to_key}")
 
     # Start run
@@ -1024,20 +1068,22 @@ def run_speller_paradigm(
             speller.run(
                 sequences=speller.highlights,
                 duration=cfg["speller"]["timing"]["cue_s"],
-                start_marker=f'{cfg["speller"]["markers"]["cue_start"]};label={target};key={target_key}',
+                start_marker=f"{cfg['speller']['markers']['cue_start']};label={target};key={target_key}",
                 stop_marker=cfg["speller"]["markers"]["cue_stop"],
             )
             speller.highlights[target_key] = [0]
 
         if phase == "online" and speller.cfg["speller"]["autocomplete"]["enabled"]:
-            speller.set_text_field(name="autocomplete_text", text=speller.next_autocomplete)
+            speller.set_text_field(
+                name="autocomplete_text", text=speller.next_autocomplete
+            )
 
         # Trial
         logger.info("Starting stimulation")
         speller.run(
             sequences=key_to_sequence,
             duration=cfg["speller"]["timing"]["trial_s"],
-            start_marker=f'{cfg["speller"]["markers"]["trial_start"]}',
+            start_marker=f"{cfg['speller']['markers']['trial_start']}",
             stop_marker=cfg["speller"]["markers"]["trial_stop"],
         )
 
@@ -1046,11 +1092,13 @@ def run_speller_paradigm(
         speller.run(
             sequences=speller.highlights,
             duration=cfg["speller"]["timing"]["iti_s"],
-            start_marker=f'{cfg["speller"]["markers"]["iti_start"]}',
+            start_marker=f"{cfg['speller']['markers']['iti_start']}",
             stop_marker=cfg["speller"]["markers"]["iti_stop"],
         )
 
-        if phase == "online" and speller.get_text_field("text").endswith(cfg["speller"]["quit_phrase"]):
+        if phase == "online" and speller.get_text_field("text").endswith(
+            cfg["speller"]["quit_phrase"]
+        ):
             break
 
     # Wait to stop
