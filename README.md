@@ -1,6 +1,6 @@
 # Dareplane c-VEP Speller
 
-This is a module for the [Dareplane](https://github.com/bsdlab/Dareplane) project. It provides a speller interface with individual symbols highlighted using the noise-tagging protocol, known to evoke the code-modulated visual evoked potential (c-VEP) in the EEG.
+This is a module compatible with the [Dareplane](https://bsdlab.github.io/Dareplane/main.html) platform. It provides a speller interface with individual symbols highlighted using the noise-tagging protocol, known to evoke the code-modulated visual evoked potential (c-VEP) in the EEG.
 
 ## Installation
 
@@ -22,17 +22,39 @@ To run the dp-cvep-speller module in isolation, use:
 
 This will run a minimal example using defaults as specified in `configs/speller.toml`.
 
-## Caveat of current unit tests:
+## Autocomplete
 
-- [ ] While the `test_decoder_selection` seems to work as intended, tests can fail due to a dynamic refresh rate of the screen (e.g., MacBooks)
+The default autocomplete functionality uses a local n-gram model. the online autocomplete requires a [Google AI authentication key](https://aistudio.google.com/app/apikey). This keys should be added to the config `speller.toml` via `speller.autocomplete.online`.
 
-- [ ] Add a checking function to ensure that the screen refresh rate is as specified in the config
+## Citation
 
-## Text to Speech (TTS) and Autocomplete (AC)
-
-TTS is always enabled, but can only be accessed using the shift keyboard layout, which has a speaker symbol.
-To enable shift, download the required images, then in speller.toml, change speller.keys.use_shift_keyboard = true.
-
-For autocompletion, in speller.toml change speller.AC.enabled = true and speller.AC.mode = "online" (or "offline").
-Online autocomplete will require a Google AI authentication key, which can be obtained at (https://aistudio.google.com/app/apikey) and added to speller.toml using the parameter AC_online.api_key.
-
+If you use [Dareplane](https://bsdlab.github.io/Dareplane/main.html) or this model for your work, please cite both the following two references:
+```bibtex
+@article{dold2025,
+    title = {Dareplane: a modular open-source software platform for {BCI} research with application in closed-loop deep brain stimulation},
+    author = {Dold, Matthias and Pereira, Joana and Sajonz, Bastian and Coenen, Volker A and Thielen, Jordy and Janssen, Marcus L F and Tangermann, Michael},
+    journal = {Journal of Neural Engineering},
+    year = {2025},
+    month = {mar},
+    publisher = {IOP Publishing},
+    volume = {22},
+    number = {2},
+    pages = {026029},
+    doi = {10.1088/1741-2552/adbb20},
+    url = {https://doi.org/10.1088/1741-2552/adbb20},
+}
+```
+```bibtex
+@article{thielen2021,
+    title = {From full calibration to zero training for a code-modulated visual evoked potentials for brain--computer interface},
+    author = {Thielen, Jordy and Marsman, Pieter and Farquhar, Jason and Desain, Peter},
+    journal = {Journal of Neural Engineering},
+    publisher = {IOP Publishing Ltd},
+    volume = {18},
+    number = {5},
+    pages = {056007},
+    year = {2021},
+    doi = {10.1088/1741-2552/abecef},
+    url = {https://doi.org/10.1088/1741-2552/abecef}
+}
+```
