@@ -16,7 +16,11 @@ KEYS = [
     "clear", "space", "autocomplete", "speaker"]
 # fmt: on
 
-KEY_COLORS = ["black", "white", "green", "blue"]
+contrast = 1.0
+zero = int(256 / 2 - 256 * contrast / 2 - 1)
+one = int(256 / 2 + 256 * contrast / 2 + 1)
+KEY_COLORS = [(zero, zero, zero), (one, one, one), (0, 128, 0), (0, 0, 255)]
+KEY_LABELS = ["black", "white", "green", "blue"]
 
 # Windows does not allow / , : * ? " < > | ~ in file names
 KEY_MAPPING = {
@@ -41,10 +45,10 @@ KEY_MAPPING = {
 for key in KEYS:
     if key == "space":
         # No symbol
-        for color in KEY_COLORS:
+        for color, label in zip(KEY_COLORS, KEY_LABELS):
             img = Image.new(mode="RGB", size=(WIDTH, HEIGHT), color=color)
             img_draw = ImageDraw.Draw(img)
-            img.save(f"{color}.png")
+            img.save(f"{label}.png")
 
     else:
         if key in KEY_MAPPING:
@@ -52,7 +56,7 @@ for key in KEYS:
         else:
             symbol = key
 
-        for color in KEY_COLORS:
+        for color, label in zip(KEY_COLORS, KEY_LABELS):
             # Symbol uppercase
             img = Image.new("RGB", (WIDTH, HEIGHT), color=color)
             img_draw = ImageDraw.Draw(img)
@@ -62,7 +66,7 @@ for key in KEYS:
             x_pos = (WIDTH - text_width) / 2
             y_pos = (HEIGHT - text_height) / 2
             img_draw.text((x_pos, y_pos), symbol, font_size=FONT_SIZE, fill=TEXT_COLOR)
-            img.save(f"{key}_{color}.png")
+            img.save(f"{key}_{label}.png")
 
             # Symbol lowercase
             if key.isalpha() and len(key) == 1:
@@ -76,4 +80,4 @@ for key in KEYS:
                 img_draw.text(
                     (x_pos, y_pos), symbol.lower(), font_size=FONT_SIZE, fill=TEXT_COLOR
                 )
-                img.save(f"{key}_lower_{color}.png")
+                img.save(f"{key}_lower_{label}.png")
