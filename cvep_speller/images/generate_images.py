@@ -16,10 +16,10 @@ KEYS = [
     "clear", "space", "autocomplete", "speaker"]
 # fmt: on
 
-contrast = 1.0
-zero = int(256 / 2 - 256 * contrast / 2 - 1)
-one = int(256 / 2 + 256 * contrast / 2 + 1)
-KEY_COLORS = [(zero, zero, zero), (one, one, one), (0, 128, 0), (0, 0, 255)]
+CONTRAST = 1.0
+ZERO = int(256 / 2 - 256 * CONTRAST / 2 - 1)
+ONE = int(256 / 2 + 256 * CONTRAST / 2 + 1)
+KEY_COLORS = [(ZERO, ZERO, ZERO), (ONE, ONE, ONE), (0, 128, 0), (0, 0, 255)]
 KEY_LABELS = ["black", "white", "green", "blue"]
 
 # Windows does not allow / , : * ? " < > | ~ in file names
@@ -42,42 +42,44 @@ KEY_MAPPING = {
     "speaker": "sp",
 }
 
-for key in KEYS:
-    if key == "space":
-        # No symbol
-        for color, label in zip(KEY_COLORS, KEY_LABELS):
-            img = Image.new(mode="RGB", size=(WIDTH, HEIGHT), color=color)
-            img_draw = ImageDraw.Draw(img)
-            img.save(f"{label}.png")
+if __name__ == "__main__":
 
-    else:
-        if key in KEY_MAPPING:
-            symbol = KEY_MAPPING[key]
+    for key in KEYS:
+        if key == "space":
+            # No symbol
+            for color, label in zip(KEY_COLORS, KEY_LABELS):
+                img = Image.new(mode="RGB", size=(WIDTH, HEIGHT), color=color)
+                img_draw = ImageDraw.Draw(img)
+                img.save(f"{label}.png")
+
         else:
-            symbol = key
+            if key in KEY_MAPPING:
+                symbol = KEY_MAPPING[key]
+            else:
+                symbol = key
 
-        for color, label in zip(KEY_COLORS, KEY_LABELS):
-            # Symbol uppercase
-            img = Image.new("RGB", (WIDTH, HEIGHT), color=color)
-            img_draw = ImageDraw.Draw(img)
-            _, _, text_width, text_height = img_draw.textbbox(
-                xy=(0, 0), text=symbol, font_size=FONT_SIZE
-            )
-            x_pos = (WIDTH - text_width) / 2
-            y_pos = (HEIGHT - text_height) / 2
-            img_draw.text((x_pos, y_pos), symbol, font_size=FONT_SIZE, fill=TEXT_COLOR)
-            img.save(f"{key}_{label}.png")
-
-            # Symbol lowercase
-            if key.isalpha() and len(key) == 1:
+            for color, label in zip(KEY_COLORS, KEY_LABELS):
+                # Symbol uppercase
                 img = Image.new("RGB", (WIDTH, HEIGHT), color=color)
                 img_draw = ImageDraw.Draw(img)
                 _, _, text_width, text_height = img_draw.textbbox(
-                    xy=(0, 0), text=symbol.lower(), font_size=FONT_SIZE
+                    xy=(0, 0), text=symbol, font_size=FONT_SIZE
                 )
                 x_pos = (WIDTH - text_width) / 2
                 y_pos = (HEIGHT - text_height) / 2
-                img_draw.text(
-                    (x_pos, y_pos), symbol.lower(), font_size=FONT_SIZE, fill=TEXT_COLOR
-                )
-                img.save(f"{key}_lower_{label}.png")
+                img_draw.text((x_pos, y_pos), symbol, font_size=FONT_SIZE, fill=TEXT_COLOR)
+                img.save(f"{key}_{label}.png")
+
+                # Symbol lowercase
+                if key.isalpha() and len(key) == 1:
+                    img = Image.new("RGB", (WIDTH, HEIGHT), color=color)
+                    img_draw = ImageDraw.Draw(img)
+                    _, _, text_width, text_height = img_draw.textbbox(
+                        xy=(0, 0), text=symbol.lower(), font_size=FONT_SIZE
+                    )
+                    x_pos = (WIDTH - text_width) / 2
+                    y_pos = (HEIGHT - text_height) / 2
+                    img_draw.text(
+                        (x_pos, y_pos), symbol.lower(), font_size=FONT_SIZE, fill=TEXT_COLOR
+                    )
+                    img.save(f"{key}_lower_{label}.png")
