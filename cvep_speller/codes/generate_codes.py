@@ -1,21 +1,31 @@
 import numpy as np
 import pyntbci
 
-# Shifted m-sequence
-code = pyntbci.stimulus.make_m_sequence(poly=[1, 0, 0, 0, 0, 1], base=2, seed=6 * [1])[
-    0, :
-]
-codes = np.zeros((code.size, code.size), dtype="uint8")
-for i in range(code.size):
-    codes[i, :] = np.roll(code, i)
-np.savez(file="mseq_61_shift.npz", codes=codes)  # [codes x bits]
+if __name__ == "__main__":
+    # Shifted m-sequence
+    mseq = pyntbci.stimulus.make_m_sequence(
+        poly=[1, 0, 0, 0, 0, 1],  # 6 1
+        base=2,
+        seed=6 * [1],
+    )  # [1 x bits]
+    mseqs = pyntbci.stimulus.shift(mseq, stride=1)  # [codes x bits]
+    np.savetxt(
+        fname="mseq_61_shift.txt", X=mseqs.astype("uint8"), fmt="%d", delimiter=","
+    )
 
-# Original set of Gold codes
-codes = pyntbci.stimulus.make_gold_codes(
-    poly1=[1, 0, 0, 0, 0, 1], poly2=[1, 1, 0, 0, 1, 1], seed1=6 * [1], seed2=6 * [1]
-)
-np.savez(file="gold_61_6521.npz", codes=codes)  # [codes x bits]
+    # Set of Gold codes
+    golds = pyntbci.stimulus.make_gold_codes(
+        poly1=[1, 0, 0, 0, 0, 1],  # 6 1
+        poly2=[1, 1, 0, 0, 1, 1],  # 6 5 2 1
+        seed1=6 * [1],
+        seed2=6 * [1],
+    )  # [codes x bits]
+    np.savetxt(
+        fname="gold_61_6521.txt", X=golds.astype("uint8"), fmt="%d", delimiter=","
+    )
 
-# Modulated set of Gold codes
-codes = pyntbci.stimulus.modulate(codes)
-np.savez(file="mgold_61_6521.npz", codes=codes)  # [codes x bits]
+    # Set of modulated Gold codes
+    mgolds = pyntbci.stimulus.modulate(golds)  # [codes x bits]
+    np.savetxt(
+        fname="mgold_61_6521.txt", X=mgolds.astype("uint8"), fmt="%d", delimiter=","
+    )

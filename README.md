@@ -1,34 +1,41 @@
 # Dareplane c-VEP Speller
 
-This is a module compatible with the [Dareplane](https://bsdlab.github.io/Dareplane/main.html) platform. It provides a speller interface with individual symbols highlighted using the noise-tagging protocol, known to evoke the code-modulated visual evoked potential (c-VEP) in the EEG.
+This is a module compatible with the [Dareplane](https://bsdlab.github.io/Dareplane/main.html) platform (Dold et al., 2025). It provides a matrix speller module to visually stimulate with pseudo-random noise codes, which evoke the code-modulated visual evoked potential (c-VEP) in the EEG.
 
 ## Installation
 
 To download the dp-cvep-speller, use:
 
-	git clone https://github.com/thijor/dp-cvep-speller.git
+```commandline
+git clone https://github.com/thijor/dp-cvep-speller.git
+```
 
 Make sure that requirements are installed, ideally in a separate conda environment:
 
-    conda create --name dp-cvep-speller python=3.10
-    conda activate dp-cvep-speller
-    pip install -r requirements.txt
+```commandline
+conda create --name dp-cvep-speller python=3.10
+conda activate dp-cvep-speller
+pip install -r requirements.txt
+```
 
 ## Getting started
 
 To run the dp-cvep-speller module in isolation, use:
 
-    python -m cvep_speller.speller.py
+```commandline
+python -m cvep_speller.speller
+```
 
-This will run a minimal example using defaults as specified in `configs/speller.toml`.
+This will run the speller using defaults as specified in `configs/speller.toml`.
 
 ## Autocomplete
 
-The default autocomplete functionality uses a local n-gram model. the online autocomplete requires a [Google AI authentication key](https://aistudio.google.com/app/apikey). This keys should be added to the config `speller.toml` via `speller.autocomplete.online`.
+The default autocomplete functionality uses a local n-gram model. 
+The online autocomplete requires a [Google AI authentication key](https://aistudio.google.com/app/apikey). This keys should be added to the config `speller.toml` via `speller.autocomplete.online`.
 
 ## Citation
 
-If you use [Dareplane](https://bsdlab.github.io/Dareplane/main.html) or this model for your work, please cite both the following two references:
+If you use [Dareplane](https://bsdlab.github.io/Dareplane/main.html), specifically this module, for your work, please cite both the following two references:
 ```bibtex
 @article{dold2025,
     title = {Dareplane: a modular open-source software platform for {BCI} research with application in closed-loop deep brain stimulation},

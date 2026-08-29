@@ -94,9 +94,9 @@ marker_stream_name = "cvep-speller-stream"
 decoder_stream_name = "cvep-decoder-stream"
 
 [training]
-codes_file = "mgold_61_6521.npz"
+codes_file = "mgold_61_6521.txt"
 n_trials = 10
 
 [online]
-codes_file = "mgold_61_6521.npz"
+codes_file = "mgold_61_6521.txt"
 n_trials = 999
