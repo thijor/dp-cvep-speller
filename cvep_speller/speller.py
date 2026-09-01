@@ -409,6 +409,7 @@ class Speller(object):
             if self.decoder_sw is not None:
                 if self.has_decoding_event():
                     self.handle_decoding_event()
+                    logger.debug(f"Interupted at {n_frames=} frames shown.")
                     break
 
             # Present keys with color depending on code state and case_flag
